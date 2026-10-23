@@ -1,0 +1,366 @@
+/* ————————————————————————————————————————————————————————————————
+   Equilibra — Componentes compartidos
+   Construido sobre equilibra-design-system.css (usa sus tokens --*).
+
+   Orden de carga en cada página:
+     1. equilibra-design-system.css   (tokens y utilidades)
+     2. equilibra-components.css      (este archivo)
+     3. <style> propio de la página   (solo lo específico de esa página)
+
+   Componentes:
+     · .container    — ancho máximo común
+     · .site-header  — barra de navegación (idéntica en todo el sitio)
+     · .page-hero    — franja verde de cabecera de página
+     · .eq-cf        — carrusel coverflow 3D
+———————————————————————————————————————————————————————————————— */
+
+/* ══ Contenedor ══ */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 var(--space-lg); }
+
+
+/* ══════════════════════════════════════════════════════════════
+   NAVBAR — <header class="site-header" id="site-header">
+   Fija arriba (68px + 3px de filo). Al hacer scroll, el JS le pone
+   la clase .scrolled y pasa a vidrio esmerilado.
+   ══════════════════════════════════════════════════════════════ */
+.site-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  background: var(--primary-dark);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  transition: background var(--t-slow), box-shadow var(--t-slow);
+}
+.site-header.scrolled {
+  background: rgba(0,61,40,.72);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow: 0 4px 24px rgba(0,61,40,.18);
+}
+/* Sin desenfoque disponible, se compensa con opacidad para no perder contraste */
+@supports not (backdrop-filter: blur(1px)) {
+  .site-header.scrolled { background: rgba(0,61,40,.95); }
+}
+/* Filo de luz inferior (3px) */
+.site-header::after {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg,
+    rgba(193,238,195,0) 0%,
+    rgba(193,238,195,.35) 20%,
+    var(--primary-soft) 50%,
+    rgba(193,238,195,.35) 80%,
+    rgba(193,238,195,0) 100%);
+}
+.site-header .container {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 68px;
+}
+/* Variante en flujo: para páginas de alto fijo que no hacen scroll (login).
+   Queda relative —no static— para seguir siendo el ancla del desplegable móvil. */
+.site-header.is-static { position: relative; }
+
+/* — Marca — */
+.brand { display: flex; align-items: center; gap: var(--space-sm); color: #fff; }
+.brand svg { width: 28px; height: 28px; flex-shrink: 0; }
+.brand img { width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; }
+.brand-name {
+  font-family: var(--font-display); font-size: 20px; font-weight: 700;
+  letter-spacing: -0.01em; color: #fff;
+}
+.brand-name .brand-accent { color: var(--primary-soft); }
+
+/* — Enlaces — */
+.main-nav { display: flex; align-items: center; gap: var(--space-xl); }
+.main-nav a {
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  color: rgba(255,255,255,.75); transition: color var(--t);
+}
+.main-nav a:hover { color: #fff; }
+.main-nav a.active { color: #fff; font-weight: 600; }
+
+/* — Acciones — */
+.header-actions { display: flex; align-items: center; gap: var(--space-md); }
+.link-login {
+  font-size: 14px; font-weight: 600; color: rgba(255,255,255,.85);
+  transition: color var(--t);
+}
+.link-login:hover { color: #fff; }
+.btn-glass {
+  background: rgba(255,255,255,.14);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,.35);
+  color: #fff; border-radius: var(--radius); font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+}
+.btn-glass:hover:not(:disabled) { background: rgba(255,255,255,.26); border-color: rgba(255,255,255,.6); }
+@supports not (backdrop-filter: blur(1px)) { .btn-glass { background: rgba(255,255,255,.22); } }
+
+/* — Botón hamburguesa (solo móvil) — */
+.nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: var(--space-sm); color: #fff; }
+.nav-toggle svg { width: 24px; height: 24px; }
+
+
+/* ══════════════════════════════════════════════════════════════
+   PAGE HERO — <section class="page-hero">
+   Franja verde de cabecera. Mide exactamente lo mismo en todas las
+   páginas: min-height fija la franja y el bloque de texto se centra
+   verticalmente en el espacio libre bajo la navbar, de modo que el
+   hueco se reparte arriba y abajo sin importar cuántas líneas ocupe
+   el texto de cada página.
+
+   IMPORTANTE: los 340px dan cabida a 2 líneas de título + 2 de
+   párrafo. Si un texto necesita más líneas, esa franja crecerá y
+   dejará de coincidir con las demás — hay que acortar el texto o
+   subir el min-height para todas a la vez.
+   ══════════════════════════════════════════════════════════════ */
+.page-hero {
+  background: linear-gradient(160deg, var(--primary-dark) 0%, #06573a 55%, var(--primary) 100%);
+  color: #fff;
+  min-height: 250px;
+  display: grid; align-content: center;
+  text-align: center;
+  margin-bottom: var(--space-2xl);   /* aire entre la franja y el contenido de la página */
+}
+.page-hero h1 {
+  font-family: var(--font-display); font-size: clamp(30px, 4vw, 44px); font-weight: 700;
+  line-height: 1.15; letter-spacing: -0.02em; margin-bottom: var(--space-md);
+}
+.page-hero h1 .accent { color: var(--primary-soft); }
+.page-hero p {
+  font-size: var(--body-lg-size); line-height: 1.6;
+  color: rgba(255,255,255,.82);
+  max-width: 620px; margin: 0 auto;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   CARRUSEL COVERFLOW 3D — <div class="eq-cf">
+   Pensado para ir sobre fondo verde oscuro (hero o franja).
+   El JS lo inicializa solo: basta con que exista .eq-cf en la
+   página, con sus .eq-cf-card, sus .eq-cf-nav y sus .eq-cf-dots.
+
+   Cards de vidrio: tinte blanco 14% sobre el verde. Con ese tinte
+   el texto blanco queda en 4.8:1 sobre el punto más claro del
+   degradado (#006d43), por encima del mínimo AA de 4.5:1.
+   ══════════════════════════════════════════════════════════════ */
+.eq-cf { position: relative; width: 100%; height: 300px; perspective: 1200px; }
+.eq-cf-track { position: absolute; inset: 0; transform-style: preserve-3d; }
+.eq-cf-card {
+  position: absolute; top: 50%; left: 50%;
+  width: 210px; height: 240px; margin: -120px 0 0 -105px;
+  background: rgba(255,255,255,.14);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.32); border-radius: var(--radius-xl);
+  box-shadow: 0 18px 40px rgba(0,30,20,.32), inset 0 1px 0 rgba(255,255,255,.30);
+  padding: var(--space-lg); display: flex; flex-direction: column;
+  transition: transform .7s cubic-bezier(.32,.72,0,1), opacity .7s ease;
+  backface-visibility: hidden; will-change: transform, opacity;
+}
+/* Posiciones: el JS solo cambia data-pos, el CSS hace el resto */
+.eq-cf-card[data-pos="center"]    { transform: translateX(0) translateZ(70px) rotateY(0deg) scale(1); opacity: 1; z-index: 4; }
+.eq-cf-card[data-pos="left"]      { transform: translateX(-128px) translateZ(0) rotateY(36deg) scale(.84); opacity: .55; z-index: 3; }
+.eq-cf-card[data-pos="right"]     { transform: translateX(128px) translateZ(0) rotateY(-36deg) scale(.84); opacity: .55; z-index: 3; }
+.eq-cf-card[data-pos="far-left"]  { transform: translateX(-190px) translateZ(-120px) rotateY(44deg) scale(.68); opacity: 0; z-index: 1; }
+.eq-cf-card[data-pos="far-right"] { transform: translateX(190px) translateZ(-120px) rotateY(-44deg) scale(.68); opacity: 0; z-index: 1; }
+/* Con más de cinco tarjetas hay cola: las que no alcanzan ninguna de las
+   cinco ranuras esperan aquí, al fondo y sin lado, hasta que el giro las
+   acerque. Sin esto se apilaban todas sobre far-left. */
+.eq-cf-card[data-pos="hidden"]    { transform: translateX(0) translateZ(-200px) scale(.6); opacity: 0; z-index: 0; }
+/* Las invisibles no pagan el coste del desenfoque ni atajan clics */
+.eq-cf-card[data-pos="far-left"],
+.eq-cf-card[data-pos="far-right"],
+.eq-cf-card[data-pos="hidden"] {
+  -webkit-backdrop-filter: none; backdrop-filter: none; pointer-events: none;
+}
+
+/* Tarjeta que lleva a su sección: es un <a> de verdad —funciona sin JS y el
+   lector de pantalla la anuncia como enlace—, pero no se pinta como tal. */
+a.eq-cf-card { text-decoration: none; cursor: pointer; }
+a.eq-cf-card[data-pos="center"]:hover {
+  background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.5);
+}
+a.eq-cf-card:focus-visible { outline: 2px solid var(--primary-soft); outline-offset: 3px; }
+
+.eq-cf-ico {
+  width: 44px; height: 44px; border-radius: var(--radius-lg);
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.22);
+  color: var(--primary-soft);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: var(--space-md); flex-shrink: 0;
+}
+.eq-cf-ico svg { width: 24px; height: 24px; }
+.eq-cf-card h4 {
+  font-family: var(--font-display); font-size: 15px; font-weight: 700;
+  color: #fff; margin-bottom: 6px; line-height: 1.25;
+}
+.eq-cf-card p { font-size: 12.5px; line-height: 1.5; color: #fff; }
+.eq-cf-tag {
+  margin-top: auto; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: #f4fdf5;
+}
+/* Card de apertura: solo antetítulo + párrafo, centrada y sin icono */
+.eq-cf-card.is-lead {
+  justify-content: center; border-top: 3px solid rgba(193,238,195,.65);
+  padding: var(--space-lg) var(--space-md);
+}
+.eq-cf-card.is-lead .eq-cf-tag { margin: 0 0 10px; font-size: 10.5px; }
+.eq-cf-card.is-lead p { font-size: 12px; line-height: 1.5; color: #fff; }
+
+/* — Flechas — */
+.eq-cf-nav {
+  position: absolute; top: 50%; margin-top: -18px; z-index: 6;
+  width: 36px; height: 36px; border-radius: var(--radius-full); padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  color: #fff; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+  transition: background var(--t), border-color var(--t);
+}
+.eq-cf-nav:hover { background: rgba(255,255,255,.28); border-color: rgba(255,255,255,.6); }
+.eq-cf-nav:focus-visible { outline: 2px solid var(--primary-soft); outline-offset: 2px; }
+.eq-cf-nav.prev { left: 0; }
+.eq-cf-nav.next { right: 0; }
+.eq-cf-nav svg { width: 18px; height: 18px; }
+
+/* — Puntos — */
+.eq-cf-dots { position: absolute; bottom: -2px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; z-index: 5; }
+.eq-cf-dots i { display: block; width: 6px; height: 6px; border-radius: var(--radius-full); background: rgba(255,255,255,.35); transition: width .3s ease, background .3s ease; }
+.eq-cf-dots i.active { width: 20px; background: rgba(255,255,255,.95); }
+
+
+/* ══ Responsive ══ */
+@media (max-width: 768px) {
+  /* Navbar: enlaces al menú desplegable */
+  .main-nav, .link-login { display: none; }
+  .nav-toggle { display: inline-flex; }
+  .brand-name { display: none; }
+  .site-header.nav-open .main-nav {
+    display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-md);
+    position: absolute; top: 71px; left: 0; right: 0;   /* 68px de barra + 3px de filo */
+    background: var(--primary-dark); padding: var(--space-lg);
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  /* Franja: 340px sobra en pantallas cortas */
+  .page-hero { min-height: 240px; }
+  /* Carrusel: cards laterales más cerca del centro */
+  .eq-cf { height: 280px; }
+  .eq-cf-card[data-pos="left"]  { transform: translateX(-96px) translateZ(0) rotateY(36deg) scale(.8); }
+  .eq-cf-card[data-pos="right"] { transform: translateX(96px) translateZ(0) rotateY(-36deg) scale(.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-cf-card { transition: none; }
+}
+
+
+/* ══ FOOTER ══
+   Markup inyectado por equilibra-components.js en
+   <footer class="site-footer" data-eq-footer></footer>. */
+.site-footer { background: var(--surface-low); border-top: 1px solid var(--border-light); }
+.footer-grid {
+  display: grid; grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--space-2xl); padding: var(--space-2xl) 0;
+}
+.footer-brand { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md); }
+.footer-brand svg { width: 26px; height: 26px; color: var(--primary); }
+.footer-brand span { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--primary-dark); }
+.footer-grid p { font-size: var(--body-sm-size); color: var(--text-muted); max-width: 340px; }
+.footer-col h5 {
+  font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--primary); margin-bottom: var(--space-md);
+}
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: var(--space-sm); }
+.footer-col a { font-size: var(--body-sm-size); color: var(--text-muted); transition: color var(--t); }
+.footer-col a:hover { color: var(--primary); }
+.footer-bottom {
+  border-top: 1px solid var(--border-light);
+  padding: var(--space-lg) 0;
+  display: flex; justify-content: space-between; align-items: center; gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.footer-bottom p { font-size: var(--caption-size); color: var(--text-faint); }
+.footer-legal { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+.footer-legal a { font-size: var(--caption-size); color: var(--text-muted); transition: color var(--t); }
+.footer-legal a:hover { color: var(--primary); }
+
+@media (max-width: 992px) {
+  .footer-grid { grid-template-columns: 1fr; gap: var(--space-xl); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODAL / POPUP  (.eq-modal)
+   Mismo diseño que el popup de las dietas del sitio nuevo
+   (pages/dietas.html), aquí como componente compartido: el
+   markup lo inyecta equilibra-components.js, así que una
+   página solo necesita un disparador con data-modal-cuerpo.
+   ══════════════════════════════════════════════════════════ */
+.eq-modal-overlay {
+  position: fixed; inset: 0; z-index: 1100;
+  background: rgba(0, 30, 20, .55);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-lg);
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--t-slow);
+}
+.eq-modal-overlay.open { opacity: 1; pointer-events: auto; }
+.eq-modal {
+  background: var(--surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 640px; max-height: min(85vh, 720px);
+  display: flex; flex-direction: column;
+  transform: translateY(16px) scale(.98);
+  transition: transform var(--t-slow);
+}
+.eq-modal-overlay.open .eq-modal { transform: translateY(0) scale(1); }
+.eq-modal-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md);
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  border-bottom: 1px solid var(--border-light);
+}
+.eq-modal-header h3 {
+  font-family: var(--font-display); font-size: var(--h3-size); font-weight: 600;
+  color: var(--on-surface); line-height: 1.3;
+}
+/* El título puede llegar como HTML del CMS (Word) con sus propias
+   etiquetas: se aplanan para que no rompan la cabecera. */
+.eq-modal-header h3 p,
+.eq-modal-header h3 span,
+.eq-modal-header h3 div {
+  margin: 0; display: inline;
+  color: inherit !important; background: transparent !important;
+  font-size: inherit !important; font-family: inherit !important;
+}
+.eq-modal-close {
+  cursor: pointer; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: var(--radius-full);
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--text-muted);
+  transition: background var(--t), color var(--t);
+}
+.eq-modal-close:hover { background: var(--surface-container); color: var(--on-surface); }
+.eq-modal-close:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.eq-modal-close svg { width: 20px; height: 20px; }
+.eq-modal-body { padding: var(--space-lg); overflow-y: auto; }
+.eq-modal-body p {
+  font-size: var(--body-size); line-height: 1.65;
+  color: var(--on-surface-var); margin: 0 0 var(--space-md);
+}
+.eq-modal-body p:last-child { margin-bottom: 0; }
+.eq-modal-body strong { color: var(--primary-dark); }
+.eq-modal-body ul, .eq-modal-body ol { padding-left: var(--space-lg); margin-bottom: var(--space-md); }
+.eq-modal-body img { max-width: 100%; height: auto; border-radius: var(--radius-md); }
+.eq-modal-footer {
+  display: flex; justify-content: flex-end; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--border-light);
+}
+
+@media (max-width: 768px) {
+  .eq-modal-overlay { padding: var(--space-md); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eq-modal-overlay, .eq-modal { transition: none; }
+}

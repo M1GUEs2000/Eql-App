@@ -1,0 +1,130 @@
+/* ————————————————————————————————————————————————————————————————
+   Equilibra — Puente entre el design system y el proyecto ASP.NET
+   ÚNICO archivo del trío que es propio de este proyecto: los otros
+   dos (equilibra-design-system.css y equilibra-components.css) son
+   copias literales de "Equilibra Promocional 2/css/" y NO deben
+   editarse aquí — se vuelven a copiar cuando cambien allá.
+
+   Orden de carga en Site.Master:
+     1. bundles heredados (bootstrap + azzara + principal.css …)
+     2. equilibra-design-system.css   (tokens y utilidades)
+     3. equilibra-components.css      (navbar, page-hero, footer, carrusel)
+     4. equilibra-puente.css          (este archivo)
+     5. StyleContentPlaceHolder       (CSS propio de cada página)
+
+   Contiene tres cosas y nada más:
+     A. Utilidades mínimas que el JS heredado da por sentadas.
+     B. Neutralización de las clases del design system cuyo nombre
+        choca con Bootstrap (mientras Bootstrap siga cargado).
+     C. El shell del sitio: <main>, submenú de sección, banner de
+        cookies y ajustes del footer.
+———————————————————————————————————————————————————————————————— */
+
+
+/* ══════════════════════════════════════════════════════════════
+   A. UTILIDADES QUE EL JS HEREDADO NECESITA
+   No son "restos de Bootstrap": el JS de la aplicación las escribe
+   y las lee en caliente, así que sobreviven a la Fase 3.
+     · LeermasmenosLogin()  → alterna .d-none en los bloques "Ver más"
+     · EnLinea.js           → alterna .d-flex/.d-none en #cookieBanner
+   ══════════════════════════════════════════════════════════════ */
+.d-none { display: none !important; }
+.d-flex { display: flex !important; }
+.cursor-pointer { cursor: pointer; }
+
+
+/* ══════════════════════════════════════════════════════════════
+   B. DE-COLISIÓN CON BOOTSTRAP
+   El design system se cargó pensando en su propia página de
+   documentación y define .card / .card-header con medidas fijas.
+   Al cargarse DESPUÉS de Bootstrap, esas medidas se le aplicarían a
+   todas las .card heredadas del sitio y las rompería.
+
+   Las páginas migradas no usan .card genérica: cada componente
+   resuelve su propio layout (ver GUIA-MIGRACION-ESTILOS.md), así que
+   neutralizar aquí no le quita nada al sistema nuevo.
+   ══════════════════════════════════════════════════════════════ */
+.card { width: auto; overflow: visible; }
+.card-header {
+  height: auto; padding: .75rem 1.25rem;
+  font-size: inherit; font-weight: inherit; letter-spacing: normal; color: inherit;
+}
+
+/* Bootstrap pinta cualquier a:hover de azul (#0056b3) y los .btn que son
+   <a> no redeclaran color en hover, asi que pierden el suyo. Se borra
+   entero al sacar bootstrap.min.css en la Fase 3.
+   ponytail: solo las tres variantes en uso; anadir la linea si aparece otra. */
+.btn-secondary:hover { color: var(--primary); }
+.btn-white:hover     { color: var(--primary-dark); }
+.btn-glass:hover     { color: #fff; }
+
+
+/* ══════════════════════════════════════════════════════════════
+   C. SHELL DEL SITIO
+   ══════════════════════════════════════════════════════════════ */
+
+/* — Cuerpo de la página —
+   .site-header es fixed y mide 68px + 3px de filo = 71px. El shell
+   antiguo (.wrapper/.main-panel de azzara) hacía scroll dentro de un
+   contenedor; aquí el scroll vuelve a ser el del documento. */
+:root {
+    /* .site-header es fixed y mide 68px + 3px de filo. Lo usan el hero
+       de portada, el índice de las legales y todo lo que tenga que
+       esquivar la barra: un solo sitio donde cambiarlo. */
+    --nav-h: 71px;
+}
+
+.eq-main { padding-top: var(--nav-h); min-height: 50vh; }
+
+/* Cuando la página abre con la franja verde, esta ya trae su propio
+   hueco para la barra (padding-top: 68px + espacio), así que le
+   devolvemos los 71px para no contarlos dos veces. */
+.eq-main > .page-hero:first-child { margin-top: calc(var(--nav-h) * -1); }
+
+
+/* El enlace "Iniciar Sesión" vive en .header-actions, que se oculta en
+   móvil junto con .main-nav. Este duplicado solo asoma dentro del menú
+   desplegable, para no perder el acceso a la sesión en pantalla chica. */
+.main-nav .nav-solo-movil { display: none; }
+@media (max-width: 768px) {
+  .site-header.nav-open .main-nav .nav-solo-movil { display: block; }
+}
+
+
+/* El submenú de sección (PageSubMenu) se retiró del Site.Master: ya no se
+   muestra en ninguna página, así que aquí no queda nada que vestir. El JS
+   heredado que buscaba #equilibra-titulos para calcular el desplazamiento
+   sigue funcionando porque resuelve su alto con `|| 0`. */
+
+
+/* — Banner de cookies —
+   Conserva id y clases (#cookieBanner, .d-flex/.d-none) porque
+   EnLinea.js las alterna; solo cambia el aspecto. */
+.eq-cookie {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1050;
+  background: var(--surface);
+  border-top: 1px solid var(--border-light);
+  box-shadow: 0 -4px 24px rgba(0,61,40,.10);
+}
+.eq-cookie .container {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-lg); padding-top: var(--space-md); padding-bottom: var(--space-md);
+}
+.eq-cookie p { font-size: var(--body-sm-size); color: var(--text-muted); margin: 0; }
+.eq-cookie a { color: var(--primary); font-weight: 600; }
+.eq-cookie a:hover { text-decoration: underline; text-underline-offset: 2px; }
+.eq-cookie button { flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  .eq-cookie .container { flex-direction: column; align-items: stretch; gap: var(--space-md); }
+}
+
+
+/* — Footer —
+   principal.css trae `footer { background:#1B58BE; color:#fff;
+   padding:15px; text-align:center }` (selector de elemento). El fondo
+   ya lo gana .site-footer; el resto hay que devolverlo aquí.
+   Se puede borrar cuando esas reglas salgan de principal.css. */
+.site-footer { color: var(--on-surface); padding: 0; text-align: left; }
+.site-footer p { margin: 0; }
