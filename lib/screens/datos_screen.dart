@@ -13,7 +13,12 @@ class DatosScreen extends StatelessWidget {
     return Scaffold(
       appBar: const EqTopBar(titulo: 'Datos del usuario'),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.lg, EqSpace.md, EqSpace.xl),
+        padding: const EdgeInsets.fromLTRB(
+          EqSpace.md,
+          EqSpace.lg,
+          EqSpace.md,
+          EqSpace.xl,
+        ),
         children: [
           Text('Tu ficha', style: EqText.h2),
           const SizedBox(height: EqSpace.xs),
@@ -32,7 +37,8 @@ class DatosScreen extends StatelessWidget {
           OpcionCard(
             icono: Icons.monitor_heart_outlined,
             titulo: 'Datos clínicos',
-            descripcion: 'Presión arterial, diabetes, tabaquismo y antecedentes',
+            descripcion:
+                'Presión arterial, diabetes, tabaquismo y antecedentes',
             onTap: () => editarDatos(context, FichaDatos.clinicos),
           ),
           const SizedBox(height: 12),

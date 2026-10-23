@@ -11,8 +11,14 @@ import '../widgets/hoja_inferior.dart';
 
 /// Edita veces por semana, tiempo y unidad de una actividad del plan (PUT gasto-calorico/actividades).
 /// Devuelve true si se guardó.
-Future<bool?> abrirHojaActividad(BuildContext context, {required String fecha, required Actividad actividad}) =>
-    abrirHoja<bool>(context, _HojaActividad(fecha: fecha, actividad: actividad));
+Future<bool?> abrirHojaActividad(
+  BuildContext context, {
+  required String fecha,
+  required Actividad actividad,
+}) => abrirHoja<bool>(
+  context,
+  _HojaActividad(fecha: fecha, actividad: actividad),
+);
 
 enum _Modo { plan, actividad }
 
@@ -77,8 +83,11 @@ class _CrearGastoScreenState extends State<CrearGastoScreen> {
     }
     _espera = Timer(const Duration(milliseconds: 400), () async {
       try {
-        final lista = await Api.get('gasto-calorico/actividades/buscar', {'q': texto.trim()}) as List;
-        if (mounted) setState(() => _resultados = [for (final a in lista) '$a']);
+        final lista = await Api.get('gasto-calorico/actividades/buscar', {
+          'q': texto.trim(),
+        }) as List;
+        if (mounted)
+          setState(() => _resultados = [for (final a in lista) '$a']);
       } on ApiError catch (e) {
         if (mounted) setState(() => _error = e.detalle);
       }
@@ -112,7 +121,10 @@ class _CrearGastoScreenState extends State<CrearGastoScreen> {
       final veces = int.tryParse(_veces.text.trim());
       final tiempo = double.tryParse(_tiempo.text.trim().replaceAll(',', '.'));
       if (_actividad == null || veces == null || tiempo == null) {
-        setState(() => _error = 'Elija la actividad e indique veces por semana y duración');
+        setState(
+          () => _error =
+              'Elija la actividad e indique veces por semana y duración',
+        );
         return;
       }
       llamada = () => Api.post('gasto-calorico/actividades', {
@@ -134,7 +146,9 @@ class _CrearGastoScreenState extends State<CrearGastoScreen> {
       if (!mounted) return;
       final mensajero = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      mensajero.showSnackBar(SnackBar(content: Text(Api.ultimoMensaje ?? 'Plan guardado')));
+      mensajero.showSnackBar(
+        SnackBar(content: Text(Api.ultimoMensaje ?? 'Plan guardado')),
+      );
       Cambios.avisar();
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
@@ -159,8 +173,14 @@ class _CrearGastoScreenState extends State<CrearGastoScreen> {
           if (widget.fecha != null) ...[
             SegmentedButton<_Modo>(
               segments: const [
-                ButtonSegment(value: _Modo.plan, label: Text('Plan predefinido')),
-                ButtonSegment(value: _Modo.actividad, label: Text('Agregar actividad')),
+                ButtonSegment(
+                  value: _Modo.plan,
+                  label: Text('Plan predefinido'),
+                ),
+                ButtonSegment(
+                  value: _Modo.actividad,
+                  label: Text('Agregar actividad'),
+                ),
               ],
               selected: {_modo},
               onSelectionChanged: (s) => setState(() {
@@ -170,7 +190,10 @@ class _CrearGastoScreenState extends State<CrearGastoScreen> {
             ),
             const SizedBox(height: EqSpace.lg),
           ],
-          if (_modo == _Modo.plan) ..._formularioPlan() else ..._formularioActividad(),
+          if (_modo == _Modo.plan)
+            ..._formularioPlan()
+          else
+            ..._formularioActividad(),
         ],
       ),
     );
@@ -182,7 +205,9 @@ class _CrearGastoScreenState extends State<CrearGastoScreen> {
       child: InkWell(
         onTap: _elegirFecha,
         child: InputDecorator(
-          decoration: const InputDecoration(suffixIcon: Icon(Icons.calendar_today_outlined)),
+          decoration: const InputDecoration(
+            suffixIcon: Icon(Icons.calendar_today_outlined),
+          ),
           child: Text(fechaVista(fechaApi(_fecha)), style: EqText.body),
         ),
       ),
@@ -214,32 +239,56 @@ class _CrearGastoScreenState extends State<CrearGastoScreen> {
   ];
 
   List<Widget> _formularioActividad() => [
-    Text('Se agrega al plan del ${fechaVista(widget.fecha!)}', style: EqText.bodySm),
+    Text(
+      'Se agrega al plan del ${fechaVista(widget.fecha!)}',
+      style: EqText.bodySm,
+    ),
     const SizedBox(height: EqSpace.md),
     EqField(
       etiqueta: 'Actividad',
       child: TextField(
         controller: _busqueda,
         onChanged: _buscar,
-        decoration: const InputDecoration(hintText: 'Ej. caminar, nadar, bicicleta...', prefixIcon: Icon(Icons.search)),
+        decoration: const InputDecoration(
+          hintText: 'Ej. caminar, nadar, bicicleta...',
+          prefixIcon: Icon(Icons.search),
+        ),
       ),
     ),
-    if (_actividad != null) ...[const SizedBox(height: EqSpace.sm), EqEtiqueta(_actividad!, tono: EqTono.exito)],
+    if (_actividad != null) ...[
+      const SizedBox(height: EqSpace.sm),
+      EqEtiqueta(_actividad!, tono: EqTono.exito),
+    ],
     for (final a in _resultados.take(12))
       ListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
-        title: Text(a, style: EqText.bodySm.copyWith(color: EqColors.onSurface)),
-        trailing: a == _actividad ? const Icon(Icons.check_circle, color: EqColors.primary) : null,
+        title: Text(
+          a,
+          style: EqText.bodySm.copyWith(color: EqColors.onSurface),
+        ),
+        trailing: a == _actividad
+            ? const Icon(Icons.check_circle, color: EqColors.primary)
+            : null,
         onTap: () => setState(() => _actividad = a),
       ),
     const SizedBox(height: EqSpace.md),
-    _CamposTiempo(veces: _veces, tiempo: _tiempo, unidad: _unidad, onUnidad: (u) => setState(() => _unidad = u)),
+    _CamposTiempo(
+      veces: _veces,
+      tiempo: _tiempo,
+      unidad: _unidad,
+      onUnidad: (u) => setState(() => _unidad = u),
+    ),
   ];
 }
 
 class _CamposTiempo extends StatelessWidget {
-  const _CamposTiempo({required this.veces, required this.tiempo, required this.unidad, required this.onUnidad});
+  const _CamposTiempo({
+    required this.veces,
+    required this.tiempo,
+    required this.unidad,
+    required this.onUnidad,
+  });
 
   final TextEditingController veces;
   final TextEditingController tiempo;
@@ -254,14 +303,22 @@ class _CamposTiempo extends StatelessWidget {
         Expanded(
           child: EqField(
             etiqueta: 'Veces/semana',
-            child: TextField(controller: veces, keyboardType: TextInputType.number),
+            child: TextField(
+              controller: veces,
+              keyboardType: TextInputType.number,
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: EqField(
             etiqueta: 'Duración',
-            child: TextField(controller: tiempo, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+            child: TextField(
+              controller: tiempo,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -294,8 +351,12 @@ class _HojaActividad extends StatefulWidget {
 }
 
 class _HojaActividadState extends State<_HojaActividad> {
-  late final _veces = TextEditingController(text: '${widget.actividad.vecesSemana}');
-  late final _tiempo = TextEditingController(text: fmtNum(widget.actividad.tiempo));
+  late final _veces = TextEditingController(
+    text: '${widget.actividad.vecesSemana}',
+  );
+  late final _tiempo = TextEditingController(
+    text: fmtNum(widget.actividad.tiempo),
+  );
   late var _unidad = widget.actividad.unidad == 'horas' ? 'horas' : 'minutos';
   var _guardando = false;
   String? _error;
@@ -341,11 +402,20 @@ class _HojaActividadState extends State<_HojaActividad> {
     return HojaInferior(
       titulo: 'Editar actividad',
       subtitulo: widget.actividad.nombre,
-      pie: PieFormulario(texto: 'Guardar cambios', onPressed: _guardando ? null : _guardar, error: _error),
+      pie: PieFormulario(
+        texto: 'Guardar cambios',
+        onPressed: _guardando ? null : _guardar,
+        error: _error,
+      ),
       child: ListView(
         padding: const EdgeInsets.all(EqSpace.lg),
         children: [
-          _CamposTiempo(veces: _veces, tiempo: _tiempo, unidad: _unidad, onUnidad: (u) => setState(() => _unidad = u)),
+          _CamposTiempo(
+            veces: _veces,
+            tiempo: _tiempo,
+            unidad: _unidad,
+            onUnidad: (u) => setState(() => _unidad = u),
+          ),
         ],
       ),
     );

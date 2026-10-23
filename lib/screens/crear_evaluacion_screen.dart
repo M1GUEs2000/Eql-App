@@ -50,11 +50,17 @@ class _CrearEvaluacionScreenState extends State<CrearEvaluacionScreen> {
       _error = null;
     });
     try {
-      final datos = await Api.get('evaluacion/previa-gasto', {'fecha': fecha}) as Json;
+      final datos =
+          await Api.get('evaluacion/previa-gasto', {'fecha': fecha}) as Json;
       if (!mounted || _fecha != fecha) return;
       final e = datos['evaluacion'];
-      setState(() => _previa = e == null ? null : Evaluacion.desdeJson(e as Json));
-      if (e == null) setState(() => _error = 'No se pudo calcular la evaluación. Revise sus datos antropométricos.');
+      setState(
+        () => _previa = e == null ? null : Evaluacion.desdeJson(e as Json),
+      );
+      if (e == null)
+        setState(
+          () => _error = 'No se pudo calcular la evaluación. Revise sus datos antropométricos.',
+        );
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
     } finally {
@@ -76,7 +82,9 @@ class _CrearEvaluacionScreenState extends State<CrearEvaluacionScreen> {
       if (!mounted) return;
       final mensajero = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      mensajero.showSnackBar(SnackBar(content: Text(Api.ultimoMensaje ?? 'Evaluación guardada')));
+      mensajero.showSnackBar(
+        SnackBar(content: Text(Api.ultimoMensaje ?? 'Evaluación guardada')),
+      );
       Cambios.avisar();
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
@@ -99,7 +107,9 @@ class _CrearEvaluacionScreenState extends State<CrearEvaluacionScreen> {
               error: _error,
             ),
       child: planes == null
-          ? (_error == null ? const Cargando() : ErrorCarga(_error!, onReintentar: _cargarPlanes))
+          ? (_error == null
+                ? const Cargando()
+                : ErrorCarga(_error!, onReintentar: _cargarPlanes))
           : ListView(
               padding: const EdgeInsets.all(EqSpace.lg),
               children: [
@@ -117,14 +127,20 @@ class _CrearEvaluacionScreenState extends State<CrearEvaluacionScreen> {
                         for (final p in planes)
                           DropdownMenuItem(
                             value: p.valor,
-                            child: Text('${fechaVista(p.valor)} · ${p.texto}', overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              '${fechaVista(p.valor)} · ${p.texto}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                       ],
                       onChanged: (f) => _elegir(f!),
                     ),
                   ),
                   const SizedBox(height: EqSpace.md),
-                  if (_cargandoPrevia) const Cargando() else if (_previa != null) _Previa(_previa!),
+                  if (_cargandoPrevia)
+                    const Cargando()
+                  else if (_previa != null)
+                    _Previa(_previa!),
                 ],
               ],
             ),
@@ -144,25 +160,43 @@ class _Previa extends StatelessWidget {
       ('Contextura', e.contextura),
       ('Grasa corporal', '${fmtNum(e.grasaCorporal, 1)} %'),
       ('Gasto basal', '${e.gastoBasal.round()} kcal'),
-      ('Peso ideal', '${fmtNum(e.pesoDesde, 1)} – ${fmtNum(e.pesoHasta, 1)} kg'),
+      (
+        'Peso ideal',
+        '${fmtNum(e.pesoDesde, 1)} – ${fmtNum(e.pesoHasta, 1)} kg',
+      ),
       ('Calorías a consumir', '${e.caloriasConsumir.round()} kcal/día'),
       ('Plan ideal', '${e.diasPlan} días'),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('VISTA PREVIA', style: EqText.caption.copyWith(color: EqColors.primary)),
+        Text(
+          'VISTA PREVIA',
+          style: EqText.caption.copyWith(color: EqColors.primary),
+        ),
         const SizedBox(height: EqSpace.sm),
         for (final (nombre, valor) in filas)
           Container(
             margin: const EdgeInsets.only(bottom: EqSpace.sm),
-            padding: const EdgeInsets.symmetric(horizontal: EqSpace.md, vertical: 12),
-            decoration: BoxDecoration(color: EqColors.surfaceLow, borderRadius: BorderRadius.circular(EqRadius.base)),
+            padding: const EdgeInsets.symmetric(
+              horizontal: EqSpace.md,
+              vertical: 12,
+            ),
+            decoration: BoxDecoration(
+              color: EqColors.surfaceLow,
+              borderRadius: BorderRadius.circular(EqRadius.base),
+            ),
             child: Row(
               children: [
-                Text(nombre, style: EqText.bodySm.copyWith(color: EqColors.onSurface)),
+                Text(
+                  nombre,
+                  style: EqText.bodySm.copyWith(color: EqColors.onSurface),
+                ),
                 const Spacer(),
-                Text(valor, style: EqText.label.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  valor,
+                  style: EqText.label.copyWith(fontWeight: FontWeight.w600),
+                ),
               ],
             ),
           ),

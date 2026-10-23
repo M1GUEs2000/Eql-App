@@ -14,6 +14,7 @@ import '../widgets/eq_basicos.dart';
 import '../widgets/eq_top_bar.dart';
 import '../widgets/popup_buscar.dart';
 import '../widgets/progreso_ajuste.dart';
+import '../widgets/hoja_inferior.dart';
 import 'crear_dieta_screen.dart';
 
 /// Pestaña "Mis dietas": la ingesta de una fecha (GET ingesta) por tiempos de comida.
@@ -56,15 +57,22 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
       _error = null;
     });
     try {
-      var ingesta = Ingesta.desdeJson(await Api.get('ingesta', {'fecha': fecha}) as Json);
+      var ingesta = Ingesta.desdeJson(
+        await Api.get('ingesta', {'fecha': fecha}) as Json,
+      );
       // Sin fecha la API abre la de hoy; si hoy no hay dieta se abre la más reciente.
       if (fecha == null && ingesta.vacia && ingesta.dietas.isNotEmpty) {
-        ingesta = Ingesta.desdeJson(await Api.get('ingesta', {'fecha': _masReciente(ingesta.dietas)}) as Json);
+        ingesta = Ingesta.desdeJson(
+          await Api.get('ingesta', {'fecha': _masReciente(ingesta.dietas)})
+              as Json,
+        );
       }
       if (!mounted) return;
       setState(() {
         _ingesta = ingesta;
-        _seleccionados.removeWhere((id) => !ingesta.comidas.any((c) => c.items.any((i) => i.id == id)));
+        _seleccionados.removeWhere(
+          (id) => !ingesta.comidas.any((c) => c.items.any((i) => i.id == id)),
+        );
       });
       Cambios.ingestaActual.value = ingesta;
     } on ApiError catch (e) {
@@ -91,11 +99,16 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
   }
 
   List<ItemIngesta> get _seleccion => [
-    for (final c in _ingesta!.comidas) ...c.items.where((i) => _seleccionados.contains(i.id)),
+    for (final c in _ingesta!.comidas)
+      ...c.items.where((i) => _seleccionados.contains(i.id)),
   ];
 
   /// Llama a la API una vez por alimento (no hay operaciones en lote) y recarga.
-  Future<void> _porCada<T>(List<T> elementos, Future<void> Function(T) llamada, String hecho) async {
+  Future<void> _porCada<T>(
+    List<T> elementos,
+    Future<void> Function(T) llamada,
+    String hecho,
+  ) async {
     setState(() => _ocupado = true);
     var bien = 0;
     ApiError? fallo;
@@ -114,7 +127,12 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
       _seleccionados.clear();
     });
     final n = bien == 1 ? '1 alimento' : '$bien alimentos';
-    mostrarMensaje(context, fallo == null ? '$n $hecho' : '${bien > 0 ? '$n $hecho. ' : ''}${fallo.detalle}');
+    mostrarMensaje(
+      context,
+      fallo == null
+          ? '$n $hecho'
+          : '${bien > 0 ? '$n $hecho. ' : ''}${fallo.detalle}',
+    );
     await _cargar(_ingesta?.fecha);
   }
 
@@ -153,14 +171,24 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
               : 'Se quitarán ${seleccion.length} alimentos.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
         ],
       ),
     );
     if (si != true) return;
     final fecha = _ingesta!.fecha;
-    await _porCada(seleccion, (i) => Api.delete('ingesta/alimentos/${i.id}', {'fecha': fecha}), 'eliminados');
+    await _porCada(
+      seleccion,
+      (i) => Api.delete('ingesta/alimentos/${i.id}', {'fecha': fecha}),
+      'eliminados',
+    );
   }
 
   Future<void> _mover() async {
@@ -169,7 +197,10 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     final fecha = _ingesta!.fecha;
     await _porCada(
       _seleccion.where((i) => i.comida != destino.nombre).toList(),
-      (i) => Api.post('ingesta/alimentos/${i.id}/mover', {'fecha': fecha, 'nuevaComida': destino.nombre}),
+      (i) => Api.post('ingesta/alimentos/${i.id}/mover', {
+        'fecha': fecha,
+        'nuevaComida': destino.nombre,
+      }),
       'movidos a ${destino.nombre}',
     );
   }
@@ -191,22 +222,37 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
                 child: Container(
                   width: 40,
                   height: 4,
-                  decoration: BoxDecoration(color: EqColors.borderLight, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(
+                    color: EqColors.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(EqSpace.lg, EqSpace.md, EqSpace.lg, EqSpace.sm),
+                padding: const EdgeInsets.fromLTRB(
+                  EqSpace.lg,
+                  EqSpace.md,
+                  EqSpace.lg,
+                  EqSpace.sm,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(titulo, style: EqText.h3),
-                    Text(n == 1 ? '1 alimento seleccionado' : '$n alimentos seleccionados', style: EqText.bodySm),
+                    Text(
+                      n == 1
+                          ? '1 alimento seleccionado'
+                          : '$n alimentos seleccionados',
+                      style: EqText.bodySm,
+                    ),
                   ],
                 ),
               ),
               for (final c in _ingesta!.comidas)
                 ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: EqSpace.lg),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: EqSpace.lg,
+                  ),
                   leading: Container(
                     width: 40,
                     height: 40,
@@ -214,11 +260,24 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
                       color: EqColors.primarySoft,
                       borderRadius: BorderRadius.circular(EqRadius.md),
                     ),
-                    child: const Icon(Icons.restaurant, color: EqColors.primaryDark, size: 20),
+                    child: const Icon(
+                      Icons.restaurant,
+                      color: EqColors.primaryDark,
+                      size: 20,
+                    ),
                   ),
-                  title: Text(c.nombre, style: EqText.label.copyWith(fontSize: 16)),
-                  subtitle: Text('${c.items.length} alimentos', style: EqText.bodySm.copyWith(fontSize: 13)),
-                  trailing: const Icon(Icons.chevron_right, color: EqColors.textFaint),
+                  title: Text(
+                    c.nombre,
+                    style: EqText.label.copyWith(fontSize: 16),
+                  ),
+                  subtitle: Text(
+                    '${c.items.length} alimentos',
+                    style: EqText.bodySm.copyWith(fontSize: 13),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: EqColors.textFaint,
+                  ),
                   onTap: () => Navigator.of(context).pop(c),
                 ),
               const SizedBox(height: EqSpace.md),
@@ -233,10 +292,20 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     final ingesta = _ingesta!;
     setState(() => _ocupado = true);
     try {
-      final datos = await Api.get('analisis', {'fecha': ingesta.fecha, 'tipo': 'DIA-COMPLETO'}) as Json;
+      final datos = await Api.get('analisis', {
+        'fecha': ingesta.fecha,
+        'tipo': 'DIA-COMPLETO',
+      }) as Json;
       if (!mounted) return;
-      final nombre = ingesta.nombre.isEmpty ? fechaVista(ingesta.fecha) : ingesta.nombre;
-      await verAnalisis(context, nombre, AnalisisNutricional.desdeJson(datos), objetivos: ingesta.objetivos);
+      final nombre = ingesta.nombre.isEmpty
+          ? fechaVista(ingesta.fecha)
+          : ingesta.nombre;
+      await verAnalisis(
+        context,
+        nombre,
+        AnalisisNutricional.desdeJson(datos),
+        objetivos: ingesta.objetivos,
+      );
     } on ApiError catch (e) {
       if (mounted) mostrarMensaje(context, e.detalle);
     } finally {
@@ -267,8 +336,14 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Optimizar')),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Optimizar'),
+            ),
           ],
         ),
       ),
@@ -276,13 +351,23 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     if (si != true || !mounted) return;
     final fecha = _ingesta!.fecha;
     try {
-      await Api.post('ajuste/automatico', {'fecha': fecha, 'permitirIntercambio': intercambio, 'origen': 'app-movil'});
+      await Api.post('ajuste/automatico', {
+        'fecha': fecha,
+        'permitirIntercambio': intercambio,
+        'origen': 'app-movil',
+      });
       if (!mounted) return;
-      final resultado = await esperarAjuste(context, tipo: TipoAjuste.automatico, fecha: fecha);
+      final resultado = await esperarAjuste(
+        context,
+        tipo: TipoAjuste.automatico,
+        fecha: fecha,
+      );
       if (!mounted) return;
       mostrarMensaje(
         context,
-        resultado == null ? 'Optimización cancelada' : (resultado['mensaje'] as String?) ?? 'Dieta optimizada',
+        resultado == null
+            ? 'Optimización cancelada'
+            : (resultado['mensaje'] as String?) ?? 'Dieta optimizada',
       );
       await _cargar(fecha);
     } on ApiError catch (e) {
@@ -293,24 +378,46 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
   @override
   Widget build(BuildContext context) {
     final ingesta = _ingesta;
-    final editable = ingesta != null && !ingesta.vacia && ingesta.bloqueo == null && !_ocupado;
+    final editable =
+        ingesta != null &&
+        !ingesta.vacia &&
+        ingesta.bloqueo == null &&
+        !_ocupado;
     return Scaffold(
       appBar: const EqTopBar(),
       body: ConBotonCrear(
-        tooltip: 'Crear nueva ingesta',
-        destino: const CrearDietaScreen(),
-        seleccionados: editable ? _seleccionados.length : 0,
-        encima: editable && ingesta.totalItems > 0 ? BotonOptimizar(onPressed: _optimizar) : null,
+        encima: editable && ingesta.totalItems > 0
+            ? BotonOptimizar(onPressed: _optimizar)
+            : null,
         acciones: [
-          AccionFlotante(
+          AccionMenu(
+            icono: Icons.add,
+            etiqueta: 'Crear ingesta',
+            onTap: () => abrirHoja<void>(context, const CrearDietaScreen()),
+          ),
+          AccionMenu(
             icono: Icons.drive_file_move_outline,
-            etiqueta: 'Mover',
+            etiqueta: _seleccionados.isEmpty
+                ? 'Mover'
+                : 'Mover (${_seleccionados.length})',
             color: EqColors.indigo,
+            habilitada: editable && _seleccionados.isNotEmpty,
             onTap: _mover,
           ),
-          AccionFlotante(icono: Icons.delete_outline, etiqueta: 'Eliminar', color: EqColors.error, onTap: _eliminar),
+          AccionMenu(
+            icono: Icons.delete_outline,
+            etiqueta: _seleccionados.isEmpty
+                ? 'Eliminar'
+                : 'Eliminar (${_seleccionados.length})',
+            color: EqColors.error,
+            habilitada: editable && _seleccionados.isNotEmpty,
+            onTap: _eliminar,
+          ),
         ],
-        child: RefreshIndicator(onRefresh: () => _cargar(ingesta?.fecha), child: _contenido(editable)),
+        child: RefreshIndicator(
+          onRefresh: () => _cargar(ingesta?.fecha),
+          child: _contenido(editable),
+        ),
       ),
     );
   }
@@ -318,11 +425,17 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
   Widget _contenido(bool editable) {
     final ingesta = _ingesta;
     if (_cargando && ingesta == null) return const Cargando();
-    if (_error != null && ingesta == null) return ErrorCarga(_error!, onReintentar: _cargar);
+    if (_error != null && ingesta == null)
+      return ErrorCarga(_error!, onReintentar: _cargar);
     if (ingesta == null) return const SizedBox.shrink();
     final dietas = ingesta.dietas;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.lg, EqSpace.md, EqSpace.xl),
+      padding: const EdgeInsets.fromLTRB(
+        EqSpace.md,
+        EqSpace.lg,
+        EqSpace.md,
+        EqSpace.xl,
+      ),
       children: [
         Padding(
           padding: const EdgeInsets.only(right: 140),
@@ -337,7 +450,9 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
               etiqueta: 'Dieta',
               child: DropdownButtonFormField<String>(
                 key: ValueKey(ingesta.fecha),
-                initialValue: dietas.any((d) => d.fecha == ingesta.fecha) ? ingesta.fecha : null,
+                initialValue: dietas.any((d) => d.fecha == ingesta.fecha)
+                    ? ingesta.fecha
+                    : null,
                 hint: Text('${fechaVista(ingesta.fecha)} · sin dieta'),
                 isExpanded: true,
                 items: [
@@ -358,8 +473,8 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
         if (ingesta.vacia)
           EqAviso(
             dietas.isEmpty
-                ? 'Todavía no tienes dietas. Toca + para crear tu primera ingesta.'
-                : 'No hay dieta el ${fechaVista(ingesta.fecha)}. Elige otra o toca + para crearla.',
+                ? 'Todavía no tienes dietas. Abre el menú para crear tu primera ingesta.'
+                : 'No hay dieta el ${fechaVista(ingesta.fecha)}. Elige otra o abre el menú para crearla.',
             icono: Icons.restaurant_menu,
           )
         else ...[
@@ -367,7 +482,10 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
             EqAviso(ingesta.bloqueo!, icono: Icons.lock_outline),
             const SizedBox(height: EqSpace.md),
           ],
-          _Resumen(objetivos: ingesta.objetivos, onVerMas: _ocupado || ingesta.totalItems == 0 ? null : _verAnalisis),
+          _Resumen(
+            objetivos: ingesta.objetivos,
+            onVerMas: _ocupado || ingesta.totalItems == 0 ? null : _verAnalisis,
+          ),
           for (final comida in ingesta.comidas) ...[
             const SizedBox(height: EqSpace.md),
             ComidaBloque(
@@ -399,12 +517,18 @@ class _Resumen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('CALORÍAS DEL DÍA', style: EqText.caption.copyWith(color: Colors.white70)),
+          Text(
+            'CALORÍAS DEL DÍA',
+            style: EqText.caption.copyWith(color: Colors.white70),
+          ),
           const SizedBox(height: EqSpace.xs),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('${o.kcal.round()}', style: EqText.h1.copyWith(color: Colors.white)),
+              Text(
+                '${o.kcal.round()}',
+                style: EqText.h1.copyWith(color: Colors.white),
+              ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4, left: 6),
                 child: Text(
@@ -415,10 +539,15 @@ class _Resumen extends StatelessWidget {
               const Spacer(),
               TextButton(
                 onPressed: onVerMas,
-                style: TextButton.styleFrom(foregroundColor: EqColors.primarySoft),
+                style: TextButton.styleFrom(
+                  foregroundColor: EqColors.primarySoft,
+                ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [Text('Análisis'), Icon(Icons.chevron_right, size: 18)],
+                  children: [
+                    Text('Análisis'),
+                    Icon(Icons.chevron_right, size: 18),
+                  ],
                 ),
               ),
             ],
@@ -437,7 +566,12 @@ class _Resumen extends StatelessWidget {
           Text(
             [
               _macro('Prot.', o.proteinas, o.objProteinas, o.tieneObjetivo),
-              _macro('Carb.', o.carbohidratos, o.objCarbohidratos, o.tieneObjetivo),
+              _macro(
+                'Carb.',
+                o.carbohidratos,
+                o.objCarbohidratos,
+                o.tieneObjetivo,
+              ),
               _macro('Grasa', o.grasa, o.objGrasa, o.tieneObjetivo),
             ].join('  ·  '),
             style: EqText.bodySm.copyWith(color: Colors.white70),
@@ -445,13 +579,22 @@ class _Resumen extends StatelessWidget {
           if (!o.tieneObjetivo)
             Text(
               'Sin objetivo: guarda tu evaluación nutricional para comparar.',
-              style: EqText.caption.copyWith(color: Colors.white60, letterSpacing: 0),
+              style: EqText.caption.copyWith(
+                color: Colors.white60,
+                letterSpacing: 0,
+              ),
             ),
         ],
       ),
     );
   }
 
-  static String _macro(String nombre, double valor, double objetivo, bool conObjetivo) =>
-      conObjetivo ? '$nombre ${valor.round()}/${objetivo.round()} g' : '$nombre ${valor.round()} g';
+  static String _macro(
+    String nombre,
+    double valor,
+    double objetivo,
+    bool conObjetivo,
+  ) => conObjetivo
+      ? '$nombre ${valor.round()}/${objetivo.round()} g'
+      : '$nombre ${valor.round()} g';
 }

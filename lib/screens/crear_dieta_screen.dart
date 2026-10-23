@@ -21,7 +21,8 @@ class CrearDietaScreen extends StatefulWidget {
 
 class _CrearDietaScreenState extends State<CrearDietaScreen> {
   final _nombre = TextEditingController();
-  final List<DietaGuardada> _dietas = Cambios.ingestaActual.value?.dietas ?? const [];
+  final List<DietaGuardada> _dietas =
+      Cambios.ingestaActual.value?.dietas ?? const [];
   var _modo = _Modo.vacia;
   var _fecha = DateTime.now();
   String? _origen;
@@ -51,12 +52,17 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
     final fecha = fechaApi(_fecha);
     if (nombre.isEmpty || (_modo == _Modo.ajustada && _origen == null)) {
       setState(
-        () => _error = _modo == _Modo.vacia ? 'Escriba el nombre de la dieta' : 'Elija la dieta de partida y el nombre',
+        () => _error = _modo == _Modo.vacia
+            ? 'Escriba el nombre de la dieta'
+            : 'Elija la dieta de partida y el nombre',
       );
       return;
     }
     if (_dietas.any((d) => d.fecha == fecha)) {
-      setState(() => _error = 'Ya existe una dieta el ${fechaVista(fecha)}. Elija otra fecha.');
+      setState(
+        () => _error =
+            'Ya existe una dieta el ${fechaVista(fecha)}. Elija otra fecha.',
+      );
       return;
     }
     setState(() {
@@ -74,7 +80,11 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
           'permitirIntercambio': _intercambio,
         });
         if (!mounted) return;
-        await esperarAjuste(context, tipo: TipoAjuste.dietaAjustada, fecha: _origen!);
+        await esperarAjuste(
+          context,
+          tipo: TipoAjuste.dietaAjustada,
+          fecha: _origen!,
+        );
       }
       if (!mounted) return;
       final mensajero = ScaffoldMessenger.of(context);
@@ -93,7 +103,11 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
     return HojaInferior(
       titulo: 'Nueva ingesta',
       subtitulo: 'Una dieta por fecha',
-      pie: PieFormulario(texto: 'Crear nueva ingesta', onPressed: _guardando ? null : _crear, error: _error),
+      pie: PieFormulario(
+        texto: 'Crear nueva ingesta',
+        onPressed: _guardando ? null : _crear,
+        error: _error,
+      ),
       child: ListView(
         padding: const EdgeInsets.all(EqSpace.lg),
         children: [
@@ -101,7 +115,10 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
             SegmentedButton<_Modo>(
               segments: const [
                 ButtonSegment(value: _Modo.vacia, label: Text('Vacía')),
-                ButtonSegment(value: _Modo.ajustada, label: Text('Desde otra dieta')),
+                ButtonSegment(
+                  value: _Modo.ajustada,
+                  label: Text('Desde otra dieta'),
+                ),
               ],
               selected: {_modo},
               onSelectionChanged: (s) => setState(() {
@@ -117,7 +134,10 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
               controller: _nombre,
               maxLength: 120,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Ej. Dieta de la semana', counterText: ''),
+              decoration: const InputDecoration(
+                hintText: 'Ej. Dieta de la semana',
+                counterText: '',
+              ),
             ),
           ),
           const SizedBox(height: EqSpace.md),
@@ -126,7 +146,9 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
             child: InkWell(
               onTap: _elegirFecha,
               child: InputDecorator(
-                decoration: const InputDecoration(suffixIcon: Icon(Icons.calendar_today_outlined)),
+                decoration: const InputDecoration(
+                  suffixIcon: Icon(Icons.calendar_today_outlined),
+                ),
                 child: Text(fechaVista(fechaApi(_fecha)), style: EqText.body),
               ),
             ),
@@ -153,8 +175,14 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
               contentPadding: EdgeInsets.zero,
               value: _intercambio,
               onChanged: (v) => setState(() => _intercambio = v),
-              title: Text('Permitir reemplazar alimentos', style: EqText.bodySm.copyWith(color: EqColors.onSurface)),
-              subtitle: Text('Si no, solo se ajustan las cantidades', style: EqText.caption.copyWith(letterSpacing: 0)),
+              title: Text(
+                'Permitir reemplazar alimentos',
+                style: EqText.bodySm.copyWith(color: EqColors.onSurface),
+              ),
+              subtitle: Text(
+                'Si no, solo se ajustan las cantidades',
+                style: EqText.caption.copyWith(letterSpacing: 0),
+              ),
             ),
             Text(
               'Equilibra copia la dieta y la ajusta a tus objetivos. Usa el cupo de ajuste automático de tu plan.',
@@ -162,7 +190,10 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
             ),
           ] else ...[
             const SizedBox(height: 12),
-            Text('Usa el cupo diario de dietas de tu plan.', style: EqText.bodySm),
+            Text(
+              'Usa el cupo diario de dietas de tu plan.',
+              style: EqText.bodySm,
+            ),
           ],
         ],
       ),

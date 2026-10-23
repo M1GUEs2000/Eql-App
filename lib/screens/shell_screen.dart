@@ -41,13 +41,21 @@ class _ShellScreenState extends State<ShellScreen> {
           selectedIndex: _pestana,
           onDestinationSelected: _ir,
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Inicio',
+            ),
             NavigationDestination(
               icon: Icon(Icons.assignment_outlined),
               selectedIcon: Icon(Icons.assignment),
               label: 'Mis dietas',
             ),
-            NavigationDestination(icon: Icon(Icons.search), selectedIcon: Icon(Icons.search), label: 'Buscar'),
+            NavigationDestination(
+              icon: Icon(Icons.search),
+              selectedIcon: Icon(Icons.search),
+              label: 'Buscar',
+            ),
             NavigationDestination(
               icon: Icon(Icons.local_fire_department_outlined),
               selectedIcon: Icon(Icons.local_fire_department),

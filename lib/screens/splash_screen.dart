@@ -12,9 +12,12 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
-  late final _pulso = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))
-    ..repeat(reverse: true);
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final _pulso = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1000),
+  )..repeat(reverse: true);
 
   @override
   void initState() {
@@ -24,11 +27,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   // Mientras se ve el logo se comprueba si el token guardado sigue vigente.
   Future<void> _entrar() async {
-    final (conSesion, _) = await (Sesion.restaurar(), Future<void>.delayed(const Duration(milliseconds: 1500))).wait;
+    final (conSesion, _) = await (
+      Sesion.restaurar(),
+      Future<void>.delayed(const Duration(milliseconds: 1500)),
+    ).wait;
     if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute<void>(builder: (_) => conSesion ? const ShellScreen() : const LoginScreen()));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => conSesion ? const ShellScreen() : const LoginScreen(),
+      ),
+    );
   }
 
   @override
@@ -49,7 +57,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               const Spacer(),
               FadeTransition(
                 opacity: Tween<double>(begin: 0.5, end: 1).animate(_pulso),
-                child: Image.asset('assets/images/logo_100.png', width: 100, height: 100),
+                child: Image.asset(
+                  'assets/images/logo_100.png',
+                  width: 100,
+                  height: 100,
+                ),
               ),
               const SizedBox(height: EqSpace.lg),
               Text.rich(
@@ -65,7 +77,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
               const Spacer(),
-              Text('@GeneralSoftec', style: EqText.bodySm.copyWith(color: Colors.white70)),
+              Text(
+                '@GeneralSoftec',
+                style: EqText.bodySm.copyWith(color: Colors.white70),
+              ),
               const SizedBox(height: EqSpace.xl),
             ],
           ),

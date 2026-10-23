@@ -7,6 +7,7 @@ import '../theme/eq_tokens.dart';
 import '../widgets/boton_crear.dart';
 import '../widgets/eq_basicos.dart';
 import '../widgets/eq_top_bar.dart';
+import '../widgets/hoja_inferior.dart';
 import 'crear_gasto_screen.dart';
 
 /// GET gasto-calorico: plan de actividades de una fecha; el servidor calcula
@@ -63,7 +64,11 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
 
   Future<void> _editar(Actividad actividad) async {
     final plan = _plan!;
-    final guardado = await abrirHojaActividad(context, fecha: plan.fecha!, actividad: actividad);
+    final guardado = await abrirHojaActividad(
+      context,
+      fecha: plan.fecha!,
+      actividad: actividad,
+    );
     if (guardado == true) Cambios.avisar();
   }
 
@@ -74,14 +79,23 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
         title: const Text('Quitar actividad'),
         content: Text('Se quitará "${actividad.nombre}" del plan.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Quitar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Quitar'),
+          ),
         ],
       ),
     );
     if (si != true) return;
     try {
-      await Api.delete('gasto-calorico/actividades', {'fecha': _plan!.fecha, 'actividad': actividad.nombre});
+      await Api.delete('gasto-calorico/actividades', {
+        'fecha': _plan!.fecha,
+        'actividad': actividad.nombre,
+      });
       if (!mounted) return;
       mostrarMensaje(context, Api.ultimoMensaje ?? 'Actividad quitada');
       Cambios.avisar();
@@ -90,15 +104,85 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
     }
   }
 
+  Future<void> _elegirParaQuitar() async {
+    final actividad = await showModalBottomSheet<Actividad>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  EqSpace.lg,
+                  EqSpace.lg,
+                  EqSpace.lg,
+                  EqSpace.sm,
+                ),
+                child: Text('¿Qué actividad quitas?', style: EqText.h3),
+              ),
+              for (final a in _plan!.actividades)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: EqSpace.lg,
+                  ),
+                  leading: const Icon(
+                    Icons.delete_outline,
+                    color: EqColors.error,
+                  ),
+                  title: Text(a.nombre, style: EqText.label),
+                  subtitle: Text(
+                    '${a.vecesSemana}× por semana',
+                    style: EqText.bodySm,
+                  ),
+                  onTap: () => Navigator.of(context).pop(a),
+                ),
+              const SizedBox(height: EqSpace.md),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (actividad != null && mounted) await _quitar(actividad);
+  }
+
   @override
   Widget build(BuildContext context) {
     final plan = _plan;
     return Scaffold(
       appBar: const EqTopBar(),
       body: ConBotonCrear(
-        tooltip: 'Nuevo plan o actividad',
-        destino: CrearGastoScreen(fecha: plan?.sinGasto ?? true ? null : plan?.fecha, planes: plan?.planes ?? const []),
-        child: RefreshIndicator(onRefresh: () => _cargar(plan?.fecha), child: _contenido()),
+        acciones: [
+          AccionMenu(
+            icono: Icons.add,
+            etiqueta: 'Crear plan o actividad',
+            onTap: () => abrirHoja<void>(
+              context,
+              CrearGastoScreen(
+                fecha: plan?.sinGasto ?? true ? null : plan?.fecha,
+                planes: plan?.planes ?? const [],
+              ),
+            ),
+          ),
+          AccionMenu(
+            icono: Icons.delete_outline,
+            etiqueta: 'Eliminar actividad',
+            color: EqColors.error,
+            habilitada:
+                plan != null &&
+                !plan.sinGasto &&
+                plan.bloqueo == null &&
+                plan.actividades.isNotEmpty,
+            onTap: _elegirParaQuitar,
+          ),
+        ],
+        child: RefreshIndicator(
+          onRefresh: () => _cargar(plan?.fecha),
+          child: _contenido(),
+        ),
       ),
     );
   }
@@ -106,35 +190,51 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
   Widget _contenido() {
     final plan = _plan;
     if (_cargando && plan == null) return const Cargando();
-    if (_error != null && plan == null) return ErrorCarga(_error!, onReintentar: _cargar);
+    if (_error != null && plan == null)
+      return ErrorCarga(_error!, onReintentar: _cargar);
     if (plan == null) return const SizedBox.shrink();
     final hoy = _hoy;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.lg, EqSpace.md, EqSpace.xl),
+      padding: const EdgeInsets.fromLTRB(
+        EqSpace.md,
+        EqSpace.lg,
+        EqSpace.md,
+        EqSpace.xl,
+      ),
       children: [
         Padding(
           padding: const EdgeInsets.only(right: 64),
           child: Text('Gasto calórico', style: EqText.h2),
         ),
         const SizedBox(height: EqSpace.xs),
-        Text('Tu metabolismo basal más las actividades de tu semana', style: EqText.bodySm),
+        Text(
+          'Tu metabolismo basal más las actividades de tu semana',
+          style: EqText.bodySm,
+        ),
         const SizedBox(height: EqSpace.md),
         if (_cargando) const LinearProgressIndicator(),
         if (plan.sinGasto)
-          EqAviso(plan.mensaje ?? 'Aún no tienes un plan de gasto calórico. Toca + para aplicar un plan predefinido.')
+          EqAviso(
+            plan.mensaje ?? 'Aún no tienes un plan de gasto calórico. Abre el menú para aplicar un plan predefinido.',
+          )
         else ...[
           if (plan.fechas.length > 1) ...[
             EqField(
               etiqueta: 'Plan',
               child: DropdownButtonFormField<String>(
                 key: ValueKey(plan.fecha),
-                initialValue: plan.fechas.any((f) => f.valor == plan.fecha) ? plan.fecha : null,
+                initialValue: plan.fechas.any((f) => f.valor == plan.fecha)
+                    ? plan.fecha
+                    : null,
                 isExpanded: true,
                 items: [
                   for (final f in plan.fechas)
                     DropdownMenuItem(
                       value: f.valor,
-                      child: Text('${fechaVista(f.valor)} · ${f.texto}', overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        '${fechaVista(f.valor)} · ${f.texto}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                 ],
                 onChanged: (f) => _cargar(f),
@@ -142,12 +242,18 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
             ),
             const SizedBox(height: 12),
           ],
-          if (plan.bloqueo != null) ...[EqAviso(plan.bloqueo!, icono: Icons.lock_outline), const SizedBox(height: 12)],
+          if (plan.bloqueo != null) ...[
+            EqAviso(plan.bloqueo!, icono: Icons.lock_outline),
+            const SizedBox(height: 12),
+          ],
           EqHero(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('GASTO ENERGÉTICO TOTAL', style: EqText.caption.copyWith(color: Colors.white70)),
+                Text(
+                  'GASTO ENERGÉTICO TOTAL',
+                  style: EqText.caption.copyWith(color: Colors.white70),
+                ),
                 const SizedBox(height: EqSpace.xs),
                 Text.rich(
                   TextSpan(
@@ -156,7 +262,9 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
                       TextSpan(text: _miles(plan.totalDiario)),
                       TextSpan(
                         text: ' kcal/día',
-                        style: EqText.body.copyWith(color: EqColors.primarySoft),
+                        style: EqText.body.copyWith(
+                          color: EqColors.primarySoft,
+                        ),
                       ),
                     ],
                   ),
@@ -174,27 +282,36 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
           Row(
             children: [
               Expanded(
-                child: _Metrica(titulo: 'Metabolismo basal', valor: _miles(plan.gastoBasalDiario), unidad: 'kcal/día'),
+                child: _Metrica(
+                  titulo: 'Metabolismo basal',
+                  valor: _miles(plan.gastoBasalDiario),
+                  unidad: 'kcal/día',
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _Metrica(
                   titulo: 'Actividades',
                   valor: _miles(plan.gastoActividadesDiario),
-                  unidad: '${fmtNum(plan.horasActividad, 1)} h de 168 a la semana',
+                  unidad:
+                      '${fmtNum(plan.horasActividad, 1)} h de 168 a la semana',
                 ),
               ),
             ],
           ),
           const SizedBox(height: EqSpace.lg),
-          Text('Actividades del plan', style: EqText.h4.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            'Actividades del plan',
+            style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
           EqCard(
             padding: const EdgeInsets.symmetric(vertical: EqSpace.xs),
             child: Column(
               children: [
                 for (final (i, a) in plan.actividades.indexed) ...[
-                  if (i > 0) const Divider(height: 1, color: EqColors.borderFaint),
+                  if (i > 0)
+                    const Divider(height: 1, color: EqColors.borderFaint),
                   ListTile(
                     onTap: plan.bloqueo == null ? () => _editar(a) : null,
                     title: Text(a.nombre, style: EqText.label),
@@ -207,15 +324,10 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
                       children: [
                         Text(
                           '${a.gastoDiario.round()} kcal',
-                          style: EqText.label.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        if (plan.bloqueo == null)
-                          IconButton(
-                            tooltip: 'Quitar ${a.nombre}',
-                            onPressed: () => _quitar(a),
-                            icon: const Icon(Icons.delete_outline, size: 20),
-                            color: EqColors.textMuted,
+                          style: EqText.label.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
+                        ),
                       ],
                     ),
                   ),
@@ -226,7 +338,10 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
         ],
         if (hoy != null && hoy.tieneObjetivo) ...[
           const SizedBox(height: EqSpace.lg),
-          Text('Distribución recomendada', style: EqText.h4.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            'Distribución recomendada',
+            style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
           EqCard(
             child: Column(
@@ -258,7 +373,10 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
             ),
           ),
           const SizedBox(height: EqSpace.lg),
-          Text('Balance de hoy', style: EqText.h4.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            'Balance de hoy',
+            style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
           EqCard(
             child: Column(
@@ -267,12 +385,16 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _Cifra(titulo: 'Consumido', valor: '${_miles(hoy.kcal)} kcal'),
+                      child: _Cifra(
+                        titulo: 'Consumido',
+                        valor: '${_miles(hoy.kcal)} kcal',
+                      ),
                     ),
                     Expanded(
                       child: _Cifra(
                         titulo: 'Restante',
-                        valor: '${_miles((hoy.objKcal - hoy.kcal).clamp(0, double.infinity))} kcal',
+                        valor:
+                            '${_miles((hoy.objKcal - hoy.kcal).clamp(0, double.infinity))} kcal',
                       ),
                     ),
                   ],
@@ -298,10 +420,17 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
 }
 
 /// 3101.2 → "3.101"
-String _miles(double v) => v.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => '.');
+String _miles(double v) => v.round().toString().replaceAllMapped(
+  RegExp(r'\B(?=(\d{3})+(?!\d))'),
+  (_) => '.',
+);
 
 class _Metrica extends StatelessWidget {
-  const _Metrica({required this.titulo, required this.valor, required this.unidad});
+  const _Metrica({
+    required this.titulo,
+    required this.valor,
+    required this.unidad,
+  });
 
   final String titulo;
   final String valor;
@@ -340,7 +469,9 @@ class _BarraMacro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final porcentaje = total <= 0 ? 0 : (gramos * kcalPorGramo / total * 100).round();
+    final porcentaje = total <= 0
+        ? 0
+        : (gramos * kcalPorGramo / total * 100).round();
     return Column(
       children: [
         Row(

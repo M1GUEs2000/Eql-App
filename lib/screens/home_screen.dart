@@ -20,7 +20,12 @@ class HomeScreen extends StatelessWidget {
         children: [
           const _Bienvenida(),
           Padding(
-            padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.lg, EqSpace.md, EqSpace.xl),
+            padding: const EdgeInsets.fromLTRB(
+              EqSpace.md,
+              EqSpace.lg,
+              EqSpace.md,
+              EqSpace.xl,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -29,28 +34,33 @@ class HomeScreen extends StatelessWidget {
                 OpcionCard(
                   icono: Icons.restaurant_menu,
                   titulo: 'Ver mis dietas',
-                  descripcion: 'Consulta las dietas que has guardado anteriormente',
+                  descripcion:
+                      'Consulta las dietas que has guardado anteriormente',
                   onTap: () => onIrAPestana(1),
                 ),
                 const SizedBox(height: 12),
                 OpcionCard(
                   icono: Icons.edit_calendar_outlined,
                   titulo: 'Crear nueva dieta',
-                  descripcion: 'Empieza una nueva planificación nutricional desde cero',
-                  onTap: () => abrirHoja<void>(context, const CrearDietaScreen()),
+                  descripcion:
+                      'Empieza una nueva planificación nutricional desde cero',
+                  onTap: () =>
+                      abrirHoja<void>(context, const CrearDietaScreen()),
                 ),
                 const SizedBox(height: 12),
                 OpcionCard(
                   icono: Icons.local_fire_department_outlined,
                   titulo: 'Ver mi gasto calórico',
-                  descripcion: 'Revisa tu balance energético y el cálculo de calorías',
+                  descripcion:
+                      'Revisa tu balance energético y el cálculo de calorías',
                   onTap: () => onIrAPestana(3),
                 ),
                 const SizedBox(height: 12),
                 OpcionCard(
                   icono: Icons.search,
                   titulo: 'Buscar alimentos',
-                  descripcion: 'Explora y añade alimentos o platos a tus dietas',
+                  descripcion:
+                      'Explora y añade alimentos o platos a tus dietas',
                   onTap: () => onIrAPestana(2),
                 ),
               ],
@@ -69,11 +79,19 @@ class _Bienvenida extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(gradient: EqGradients.hero),
-      padding: const EdgeInsets.fromLTRB(EqSpace.lg, 28, EqSpace.lg, EqSpace.xl),
+      padding: const EdgeInsets.fromLTRB(
+        EqSpace.lg,
+        28,
+        EqSpace.lg,
+        EqSpace.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('HOLA, ${Sesion.nombre.toUpperCase()}', style: EqText.caption.copyWith(color: Colors.white70)),
+          Text(
+            'HOLA, ${Sesion.nombre.toUpperCase()}',
+            style: EqText.caption.copyWith(color: Colors.white70),
+          ),
           const SizedBox(height: EqSpace.sm),
           Text.rich(
             TextSpan(
@@ -91,7 +109,9 @@ class _Bienvenida extends StatelessWidget {
           const SizedBox(height: EqSpace.sm),
           Text(
             'Planifica tus comidas y sigue tu progreso.',
-            style: EqText.body.copyWith(color: Colors.white.withValues(alpha: 0.82)),
+            style: EqText.body.copyWith(
+              color: Colors.white.withValues(alpha: 0.82),
+            ),
           ),
         ],
       ),

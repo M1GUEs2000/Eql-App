@@ -41,7 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await Sesion.iniciar(usuario, _clave.text);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => const ShellScreen()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const ShellScreen()),
+      );
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
     } finally {
@@ -52,12 +54,19 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _recuperar() async {
     final usuario = _usuario.text.trim();
     if (usuario.isEmpty) {
-      setState(() => _error = 'Escriba su usuario (correo) para recuperar la contraseña');
+      setState(
+        () =>
+            _error = 'Escriba su usuario (correo) para recuperar la contraseña',
+      );
       return;
     }
     try {
       await Api.post('auth/recuperar-clave', {'usuario': usuario});
-      if (mounted) mostrarMensaje(context, Api.ultimoMensaje ?? 'Revise su correo para recuperar la contraseña.');
+      if (mounted)
+        mostrarMensaje(
+          context,
+          Api.ultimoMensaje ?? 'Revise su correo para recuperar la contraseña.',
+        );
     } on ApiError catch (e) {
       if (mounted) mostrarMensaje(context, e.detalle);
     }
@@ -81,9 +90,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     curve: Curves.easeOut,
                     builder: (context, v, child) => Opacity(
                       opacity: v,
-                      child: Transform.translate(offset: Offset(0, 40 * (1 - v)), child: child),
+                      child: Transform.translate(
+                        offset: Offset(0, 40 * (1 - v)),
+                        child: child,
+                      ),
                     ),
-                    child: Center(child: Image.asset('assets/images/logo_100.png', width: 100, height: 100)),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/logo_100.png',
+                        width: 100,
+                        height: 100,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: EqSpace.lg),
                   Text(
@@ -92,7 +110,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: EqText.h2.copyWith(color: EqColors.primaryDark),
                   ),
                   const SizedBox(height: EqSpace.xs),
-                  Text('Ingresa con tu usuario para continuar', textAlign: TextAlign.center, style: EqText.bodySm),
+                  Text(
+                    'Ingresa con tu usuario para continuar',
+                    textAlign: TextAlign.center,
+                    style: EqText.bodySm,
+                  ),
                   const SizedBox(height: EqSpace.lg),
                   EqField(
                     etiqueta: 'Usuario',
@@ -124,22 +146,35 @@ class _LoginScreenState extends State<LoginScreen> {
                         errorMaxLines: 4,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
-                          tooltip: _verClave ? 'Ocultar contraseña' : 'Ver contraseña',
-                          onPressed: () => setState(() => _verClave = !_verClave),
-                          icon: Icon(_verClave ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                          tooltip: _verClave
+                              ? 'Ocultar contraseña'
+                              : 'Ver contraseña',
+                          onPressed: () =>
+                              setState(() => _verClave = !_verClave),
+                          icon: Icon(
+                            _verClave
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(onPressed: _recuperar, child: const Text('¿Olvidó su contraseña?')),
+                    child: TextButton(
+                      onPressed: _recuperar,
+                      child: const Text('¿Olvidó su contraseña?'),
+                    ),
                   ),
                   const SizedBox(height: EqSpace.sm),
                   FilledButton(
                     onPressed: _enviando ? null : _ingresar,
                     child: _enviando
-                        ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Text('Ingresar'),
                   ),
                   const SizedBox(height: EqSpace.md),
@@ -147,10 +182,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text('¿Desea registrar un nuevo usuario?', style: EqText.bodySm),
+                      Text(
+                        '¿Desea registrar un nuevo usuario?',
+                        style: EqText.bodySm,
+                      ),
                       TextButton(
-                        onPressed: () =>
-                            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const RegistroScreen())),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const RegistroScreen(),
+                          ),
+                        ),
                         child: const Text('Registrarse'),
                       ),
                     ],
