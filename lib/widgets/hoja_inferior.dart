@@ -91,7 +91,7 @@ class HojaInferior extends StatelessWidget {
         Expanded(child: child),
         if (pie != null)
           DecoratedBox(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(top: BorderSide(color: EqColors.borderLight)),
             ),
             child: SafeArea(

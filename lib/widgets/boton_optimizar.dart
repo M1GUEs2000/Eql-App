@@ -78,7 +78,7 @@ class _BotonOptimizarState extends State<BotonOptimizar> with TickerProviderStat
               ),
             ],
             gradient: SweepGradient(
-              colors: const [
+              colors: [
                 EqColors.primaryDark,
                 EqColors.primary,
                 EqColors.primarySoft,
@@ -105,7 +105,7 @@ class _BotonOptimizarState extends State<BotonOptimizar> with TickerProviderStat
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.auto_awesome, size: 18, color: EqColors.primary),
+                Icon(Icons.auto_awesome, size: 18, color: EqColors.primary),
                 const SizedBox(width: 6),
                 Text(
                   'Optimizar',

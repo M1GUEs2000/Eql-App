@@ -61,7 +61,7 @@ class ComidaBloque extends StatelessWidget {
                     child: Text('Sin alimentos todavía', style: EqText.bodySm),
                   ),
                 for (final (i, item) in bloque.items.indexed) ...[
-                  if (i > 0) const Divider(color: EqColors.borderFaint),
+                  if (i > 0) Divider(color: EqColors.borderFaint),
                   _FilaItem(
                     item,
                     seleccionado: seleccionados.contains(item.id),
@@ -109,7 +109,7 @@ class _FilaItem extends StatelessWidget {
           child: Row(
             children: [
               if (seleccionado) ...[
-                const Icon(Icons.check_circle, color: EqColors.primary, size: 18),
+                Icon(Icons.check_circle, color: EqColors.primary, size: 18),
                 const SizedBox(width: EqSpace.sm),
               ],
               Expanded(

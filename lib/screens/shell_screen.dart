@@ -34,7 +34,7 @@ class _ShellScreenState extends State<ShellScreen> {
         ],
       ),
       bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(top: BorderSide(color: EqColors.borderLight)),
         ),
         child: NavigationBar(

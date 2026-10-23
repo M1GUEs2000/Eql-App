@@ -56,7 +56,7 @@ class AlimentoTile extends StatelessWidget {
           if (seleccionado != null)
             Checkbox(value: marcado, onChanged: (_) => onTap())
           else
-            const Icon(Icons.chevron_right, color: EqColors.textFaint),
+            Icon(Icons.chevron_right, color: EqColors.textFaint),
         ],
       ),
     );

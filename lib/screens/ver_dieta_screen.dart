@@ -191,6 +191,38 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     );
   }
 
+  Future<void> _eliminarDieta() async {
+    final ingesta = _ingesta!;
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar dieta'),
+        content: Text(
+          'Se eliminará toda la dieta del ${fechaVista(ingesta.fecha)}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (si != true || !mounted) return;
+    try {
+      await Api.delete('ingesta/dietas', {'fecha': ingesta.fecha});
+      if (!mounted) return;
+      mostrarMensaje(context, Api.ultimoMensaje ?? 'Dieta eliminada');
+      Cambios.avisar();
+    } on ApiError catch (e) {
+      if (mounted) mostrarMensaje(context, e.detalle);
+    }
+  }
+
   Future<void> _mover() async {
     final destino = await _elegirComida('Mover a');
     if (destino == null || !mounted) return;
@@ -257,12 +289,12 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: EqColors.primarySoft,
+                      color: EqColors.acentoFondo,
                       borderRadius: BorderRadius.circular(EqRadius.md),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.restaurant,
-                      color: EqColors.primaryDark,
+                      color: EqColors.acento,
                       size: 20,
                     ),
                   ),
@@ -274,7 +306,7 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
                     '${c.items.length} alimentos',
                     style: EqText.bodySm.copyWith(fontSize: 13),
                   ),
-                  trailing: const Icon(
+                  trailing: Icon(
                     Icons.chevron_right,
                     color: EqColors.textFaint,
                   ),
@@ -392,25 +424,29 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
         acciones: [
           AccionMenu(
             icono: Icons.add,
-            etiqueta: 'Crear ingesta',
+            etiqueta: 'Crear dieta',
             onTap: () => abrirHoja<void>(context, const CrearDietaScreen()),
           ),
           AccionMenu(
+            icono: Icons.delete_outline,
+            etiqueta: 'Eliminar dieta',
+            color: EqColors.error,
+            habilitada: editable,
+            onTap: _eliminarDieta,
+          ),
+        ],
+        seleccionados: editable ? _seleccionados.length : 0,
+        accionesSeleccion: [
+          AccionFlotante(
             icono: Icons.drive_file_move_outline,
-            etiqueta: _seleccionados.isEmpty
-                ? 'Mover'
-                : 'Mover (${_seleccionados.length})',
+            etiqueta: 'Mover',
             color: EqColors.indigo,
-            habilitada: editable && _seleccionados.isNotEmpty,
             onTap: _mover,
           ),
-          AccionMenu(
+          AccionFlotante(
             icono: Icons.delete_outline,
-            etiqueta: _seleccionados.isEmpty
-                ? 'Eliminar'
-                : 'Eliminar (${_seleccionados.length})',
+            etiqueta: 'Eliminar',
             color: EqColors.error,
-            habilitada: editable && _seleccionados.isNotEmpty,
             onTap: _eliminar,
           ),
         ],

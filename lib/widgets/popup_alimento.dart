@@ -82,11 +82,11 @@ class _DetalleAlimentoState extends State<_DetalleAlimento> {
             borde: EqColors.primary.withValues(alpha: 0.3),
             child: Row(
               children: [
-                const Icon(Icons.bolt, color: EqColors.primary),
+                Icon(Icons.bolt, color: EqColors.primary),
                 const SizedBox(width: EqSpace.sm),
                 Text('Energía', style: EqText.label),
                 const Spacer(),
-                Text('${a.kcal.round()} kcal', style: EqText.h3.copyWith(color: EqColors.primaryDark)),
+                Text('${a.kcal.round()} kcal', style: EqText.h3.copyWith(color: EqColors.acento)),
               ],
             ),
           ),

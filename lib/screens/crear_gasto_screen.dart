@@ -268,7 +268,7 @@ class _CrearGastoScreenState extends State<CrearGastoScreen> {
           style: EqText.bodySm.copyWith(color: EqColors.onSurface),
         ),
         trailing: a == _actividad
-            ? const Icon(Icons.check_circle, color: EqColors.primary)
+            ? Icon(Icons.check_circle, color: EqColors.primary)
             : null,
         onTap: () => setState(() => _actividad = a),
       ),

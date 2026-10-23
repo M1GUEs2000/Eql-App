@@ -6,6 +6,7 @@ import '../data/models.dart';
 import '../theme/eq_tokens.dart';
 import '../widgets/boton_crear.dart';
 import '../widgets/eq_basicos.dart';
+import '../widgets/eq_metricas.dart';
 import '../widgets/eq_top_bar.dart';
 import '../widgets/hoja_inferior.dart';
 import 'crear_gasto_screen.dart';
@@ -104,49 +105,37 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
     }
   }
 
-  Future<void> _elegirParaQuitar() async {
-    final actividad = await showModalBottomSheet<Actividad>(
+  Future<void> _eliminarPlan() async {
+    final plan = _plan!;
+    final si = await showDialog<bool>(
       context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  EqSpace.lg,
-                  EqSpace.lg,
-                  EqSpace.lg,
-                  EqSpace.sm,
-                ),
-                child: Text('¿Qué actividad quitas?', style: EqText.h3),
-              ),
-              for (final a in _plan!.actividades)
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: EqSpace.lg,
-                  ),
-                  leading: const Icon(
-                    Icons.delete_outline,
-                    color: EqColors.error,
-                  ),
-                  title: Text(a.nombre, style: EqText.label),
-                  subtitle: Text(
-                    '${a.vecesSemana}× por semana',
-                    style: EqText.bodySm,
-                  ),
-                  onTap: () => Navigator.of(context).pop(a),
-                ),
-              const SizedBox(height: EqSpace.md),
-            ],
-          ),
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar gasto calórico'),
+        content: Text(
+          'Se eliminarán todas las actividades del plan del '
+          '${fechaVista(plan.fecha ?? '')}.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
       ),
     );
-    if (actividad != null && mounted) await _quitar(actividad);
+    if (si != true) return;
+    try {
+      await Api.delete('gasto-calorico', {'fecha': plan.fecha});
+      if (!mounted) return;
+      mostrarMensaje(context, Api.ultimoMensaje ?? 'Gasto calórico eliminado');
+      Cambios.avisar();
+    } on ApiError catch (e) {
+      if (mounted) mostrarMensaje(context, e.detalle);
+    }
   }
 
   @override
@@ -169,14 +158,14 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
           ),
           AccionMenu(
             icono: Icons.delete_outline,
-            etiqueta: 'Eliminar actividad',
+            etiqueta: 'Eliminar gasto calórico',
             color: EqColors.error,
             habilitada:
                 plan != null &&
                 !plan.sinGasto &&
                 plan.bloqueo == null &&
                 plan.actividades.isNotEmpty,
-            onTap: _elegirParaQuitar,
+            onTap: _eliminarPlan,
           ),
         ],
         child: RefreshIndicator(
@@ -190,8 +179,9 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
   Widget _contenido() {
     final plan = _plan;
     if (_cargando && plan == null) return const Cargando();
-    if (_error != null && plan == null)
+    if (_error != null && plan == null) {
       return ErrorCarga(_error!, onReintentar: _cargar);
+    }
     if (plan == null) return const SizedBox.shrink();
     final hoy = _hoy;
     return ListView(
@@ -207,15 +197,20 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
           child: Text('Gasto calórico', style: EqText.h2),
         ),
         const SizedBox(height: EqSpace.xs),
-        Text(
-          'Tu metabolismo basal más las actividades de tu semana',
-          style: EqText.bodySm,
+        Padding(
+          padding: const EdgeInsets.only(right: 64),
+          child: Text(
+            'Tu metabolismo basal más las actividades de tu semana',
+            style: EqText.bodySm,
+          ),
         ),
         const SizedBox(height: EqSpace.md),
         if (_cargando) const LinearProgressIndicator(),
         if (plan.sinGasto)
           EqAviso(
-            plan.mensaje ?? 'Aún no tienes un plan de gasto calórico. Abre el menú para aplicar un plan predefinido.',
+            plan.mensaje ??
+                'Aún no tienes un plan de gasto calórico. '
+                    'Abre el menú para aplicar un plan predefinido.',
           )
         else ...[
           if (plan.fechas.length > 1) ...[
@@ -246,168 +241,117 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
             EqAviso(plan.bloqueo!, icono: Icons.lock_outline),
             const SizedBox(height: 12),
           ],
-          EqHero(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'GASTO ENERGÉTICO TOTAL',
-                  style: EqText.caption.copyWith(color: Colors.white70),
-                ),
-                const SizedBox(height: EqSpace.xs),
-                Text.rich(
-                  TextSpan(
-                    style: EqText.h1.copyWith(color: Colors.white),
-                    children: [
-                      TextSpan(text: _miles(plan.totalDiario)),
-                      TextSpan(
-                        text: ' kcal/día',
-                        style: EqText.body.copyWith(
-                          color: EqColors.primarySoft,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: EqSpace.xs),
-                Text(
-                  '${plan.nombre} · ${fechaVista(plan.fecha ?? '')}'
-                  '${plan.fechaFin == null ? '' : ' al ${fechaVista(plan.fechaFin!)}'}',
-                  style: EqText.bodySm.copyWith(color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
+          _HeroGasto(plan),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _Metrica(
-                  titulo: 'Metabolismo basal',
-                  valor: _miles(plan.gastoBasalDiario),
-                  unidad: 'kcal/día',
-                ),
+          EqPares(
+            hijos: [
+              EqMetrica(
+                icono: Icons.bolt_outlined,
+                titulo: 'Metabolismo basal',
+                valor: _miles(plan.gastoBasalDiario),
+                unidad: 'kcal por día en reposo',
+                color: EqColors.indigo,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Metrica(
-                  titulo: 'Actividades',
-                  valor: _miles(plan.gastoActividadesDiario),
-                  unidad:
-                      '${fmtNum(plan.horasActividad, 1)} h de 168 a la semana',
-                ),
+              EqMetrica(
+                icono: Icons.directions_run,
+                titulo: 'Actividades',
+                valor: _miles(plan.gastoActividadesDiario),
+                unidad:
+                    'kcal por día · ${fmtNum(plan.horasActividad, 1)} h '
+                    'a la semana',
               ),
             ],
           ),
           const SizedBox(height: EqSpace.lg),
-          Text(
+          EqSeccion(
             'Actividades del plan',
-            style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
+            detalle: '${plan.actividades.length}',
           ),
           const SizedBox(height: 12),
-          EqCard(
-            padding: const EdgeInsets.symmetric(vertical: EqSpace.xs),
-            child: Column(
-              children: [
-                for (final (i, a) in plan.actividades.indexed) ...[
-                  if (i > 0)
-                    const Divider(height: 1, color: EqColors.borderFaint),
-                  ListTile(
-                    onTap: plan.bloqueo == null ? () => _editar(a) : null,
-                    title: Text(a.nombre, style: EqText.label),
-                    subtitle: Text(
-                      '${a.vecesSemana}× por semana · ${fmtNum(a.tiempo)} ${a.unidad}',
-                      style: EqText.bodySm.copyWith(fontSize: 13),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${a.gastoDiario.round()} kcal',
-                          style: EqText.label.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          EqPares(
+            hijos: [
+              for (final a in plan.actividades)
+                _TarjetaActividad(
+                  a,
+                  onEditar: plan.bloqueo == null ? () => _editar(a) : null,
+                  onQuitar: plan.bloqueo == null ? () => _quitar(a) : null,
+                ),
+            ],
           ),
         ],
         if (hoy != null && hoy.tieneObjetivo) ...[
           const SizedBox(height: EqSpace.lg),
-          Text(
-            'Distribución recomendada',
-            style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
-          ),
+          const EqSeccion('Distribución recomendada'),
           const SizedBox(height: 12),
           EqCard(
-            child: Column(
+            child: Row(
               children: [
-                _BarraMacro(
-                  nombre: 'Proteínas',
-                  gramos: hoy.objProteinas,
-                  kcalPorGramo: 4,
-                  total: hoy.objKcal,
-                  color: EqColors.indigo,
+                Expanded(
+                  child: _AnilloMacro(
+                    nombre: 'Proteínas',
+                    gramos: hoy.objProteinas,
+                    kcalPorGramo: 4,
+                    total: hoy.objKcal,
+                    color: EqColors.indigo,
+                  ),
                 ),
-                const SizedBox(height: EqSpace.md),
-                _BarraMacro(
-                  nombre: 'Carbohidratos',
-                  gramos: hoy.objCarbohidratos,
-                  kcalPorGramo: 4,
-                  total: hoy.objKcal,
-                  color: EqColors.warningText,
+                Expanded(
+                  child: _AnilloMacro(
+                    nombre: 'Carbohidratos',
+                    gramos: hoy.objCarbohidratos,
+                    kcalPorGramo: 4,
+                    total: hoy.objKcal,
+                    color: EqColors.warningText,
+                  ),
                 ),
-                const SizedBox(height: EqSpace.md),
-                _BarraMacro(
-                  nombre: 'Grasas',
-                  gramos: hoy.objGrasa,
-                  kcalPorGramo: 9,
-                  total: hoy.objKcal,
-                  color: EqColors.primary,
+                Expanded(
+                  child: _AnilloMacro(
+                    nombre: 'Grasas',
+                    gramos: hoy.objGrasa,
+                    kcalPorGramo: 9,
+                    total: hoy.objKcal,
+                    color: EqColors.primary,
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: EqSpace.lg),
-          Text(
-            'Balance de hoy',
-            style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
+          const EqSeccion('Balance de hoy'),
+          const SizedBox(height: 12),
+          EqPares(
+            hijos: [
+              EqMetrica(
+                icono: Icons.restaurant,
+                titulo: 'Consumido',
+                valor: _miles(hoy.kcal),
+                unidad: 'kcal',
+              ),
+              EqMetrica(
+                icono: Icons.hourglass_bottom,
+                titulo: 'Restante',
+                valor: _miles(
+                  (hoy.objKcal - hoy.kcal).clamp(0, double.infinity),
+                ),
+                unidad: 'kcal',
+                color: EqColors.warningText,
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           EqCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _Cifra(
-                        titulo: 'Consumido',
-                        valor: '${_miles(hoy.kcal)} kcal',
-                      ),
-                    ),
-                    Expanded(
-                      child: _Cifra(
-                        titulo: 'Restante',
-                        valor:
-                            '${_miles((hoy.objKcal - hoy.kcal).clamp(0, double.infinity))} kcal',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 LinearProgressIndicator(
                   value: hoy.avance.clamp(0, 1).toDouble(),
-                  minHeight: 8,
-                  borderRadius: BorderRadius.circular(4),
+                  minHeight: 10,
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 const SizedBox(height: EqSpace.sm),
                 Text(
-                  'Vas al ${(hoy.avance * 100).round()} % de tu objetivo de ${_miles(hoy.objKcal)} kcal',
+                  'Vas al ${(hoy.avance * 100).round()} % de tu objetivo de '
+                  '${_miles(hoy.objKcal)} kcal',
                   style: EqText.bodySm,
                 ),
               ],
@@ -425,35 +369,210 @@ String _miles(double v) => v.round().toString().replaceAllMapped(
   (_) => '.',
 );
 
-class _Metrica extends StatelessWidget {
-  const _Metrica({
-    required this.titulo,
-    required this.valor,
-    required this.unidad,
-  });
+/// Total diario y, debajo, cómo se reparte entre reposo y movimiento.
+class _HeroGasto extends StatelessWidget {
+  const _HeroGasto(this.plan);
 
-  final String titulo;
-  final String valor;
-  final String unidad;
+  final PlanGasto plan;
 
   @override
   Widget build(BuildContext context) {
-    return EqCard(
+    final total = plan.totalDiario <= 0 ? 1 : plan.totalDiario;
+    final basal = (plan.gastoBasalDiario / total).clamp(0.0, 1.0);
+    final rango =
+        '${fechaVista(plan.fecha ?? '')}'
+        '${plan.fechaFin == null ? '' : ' al ${fechaVista(plan.fechaFin!)}'}';
+    return EqHero(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(titulo, style: EqText.bodySm),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'GASTO ENERGÉTICO TOTAL',
+                  style: EqText.caption.copyWith(color: Colors.white70),
+                ),
+              ),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    plan.nombre,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: EqText.caption.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: EqSpace.xs),
-          Text(valor, style: EqText.h2),
-          Text(unidad, style: EqText.caption.copyWith(letterSpacing: 0)),
+          Text.rich(
+            TextSpan(
+              style: EqText.display.copyWith(color: Colors.white),
+              children: [
+                TextSpan(text: _miles(plan.totalDiario)),
+                TextSpan(
+                  text: ' kcal/día',
+                  style: EqText.body.copyWith(color: EqColors.primarySoft),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(rango, style: EqText.bodySm.copyWith(color: Colors.white70)),
+          const SizedBox(height: EqSpace.md),
+          // Reposo (claro) y movimiento (verde vivo) a escala del total
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 12,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: (basal * 1000).round().clamp(1, 999),
+                    child: const ColoredBox(color: EqColors.primarySoft),
+                  ),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    flex: ((1 - basal) * 1000).round().clamp(1, 999),
+                    child: const ColoredBox(color: EqColors.primaryLight),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _Leyenda(
+                EqColors.primarySoft,
+                'Reposo ${(basal * 100).round()} %',
+              ),
+              const SizedBox(width: EqSpace.md),
+              _Leyenda(
+                EqColors.primaryLight,
+                'Actividad ${((1 - basal) * 100).round()} %',
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _BarraMacro extends StatelessWidget {
-  const _BarraMacro({
+class _Leyenda extends StatelessWidget {
+  const _Leyenda(this.color, this.texto);
+
+  final Color color;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          texto,
+          style: EqText.caption.copyWith(color: Colors.white, letterSpacing: 0),
+        ),
+      ],
+    );
+  }
+}
+
+class _TarjetaActividad extends StatelessWidget {
+  const _TarjetaActividad(this.a, {this.onEditar, this.onQuitar});
+
+  final Actividad a;
+  final VoidCallback? onEditar;
+  final VoidCallback? onQuitar;
+
+  @override
+  Widget build(BuildContext context) {
+    return EqCard(
+      onTap: onEditar,
+      padding: const EdgeInsets.fromLTRB(14, 8, 6, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    a.nombre,
+                    style: EqText.label.copyWith(fontWeight: FontWeight.w600),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              if (onQuitar != null)
+                IconButton(
+                  tooltip: 'Quitar ${a.nombre}',
+                  onPressed: onQuitar,
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  color: EqColors.textMuted,
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(
+              '${a.vecesSemana}× por semana · ${fmtNum(a.tiempo)} ${a.unidad}',
+              style: EqText.bodySm.copyWith(fontSize: 12),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const Spacer(),
+          const SizedBox(height: 10),
+          Text.rich(
+            TextSpan(
+              style: EqText.h3.copyWith(
+                fontWeight: FontWeight.w700,
+                color: EqColors.primary,
+              ),
+              children: [
+                TextSpan(text: '${a.gastoDiario.round()}'),
+                TextSpan(
+                  text: ' kcal',
+                  style: EqText.caption.copyWith(letterSpacing: 0),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnilloMacro extends StatelessWidget {
+  const _AnilloMacro({
     required this.nombre,
     required this.gramos,
     required this.kcalPorGramo,
@@ -469,44 +588,42 @@ class _BarraMacro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final porcentaje = total <= 0
-        ? 0
-        : (gramos * kcalPorGramo / total * 100).round();
+    final porcentaje = total <= 0 ? 0 : (gramos * kcalPorGramo / total * 100);
     return Column(
       children: [
-        Row(
-          children: [
-            Text(nombre, style: EqText.label),
-            const Spacer(),
-            Text('$porcentaje % · ${gramos.round()} g', style: EqText.bodySm),
-          ],
+        SizedBox(
+          width: 72,
+          height: 72,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox.expand(
+                child: CircularProgressIndicator(
+                  value: (porcentaje / 100).clamp(0, 1).toDouble(),
+                  strokeWidth: 7,
+                  strokeCap: StrokeCap.round,
+                  color: color,
+                  backgroundColor: color.withValues(alpha: 0.12),
+                ),
+              ),
+              Text(
+                '${porcentaje.round()}%',
+                style: EqText.label.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 6),
-        LinearProgressIndicator(
-          value: (porcentaje / 100).clamp(0, 1).toDouble(),
-          minHeight: 8,
-          borderRadius: BorderRadius.circular(4),
-          color: color,
-          backgroundColor: color.withValues(alpha: 0.12),
+        const SizedBox(height: 8),
+        Text(
+          nombre,
+          style: EqText.caption.copyWith(letterSpacing: 0),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-      ],
-    );
-  }
-}
-
-class _Cifra extends StatelessWidget {
-  const _Cifra({required this.titulo, required this.valor});
-
-  final String titulo;
-  final String valor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(titulo, style: EqText.bodySm),
-        Text(valor, style: EqText.h3),
+        Text(
+          '${gramos.round()} g',
+          style: EqText.label.copyWith(fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }

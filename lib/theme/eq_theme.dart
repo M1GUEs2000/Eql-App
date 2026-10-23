@@ -5,8 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'eq_tokens.dart';
 
 ThemeData buildEqTheme() {
+  // Lee los tokens del modo vigente: se vuelve a construir al cambiar EqColors.oscuro.
   final esquema = ColorScheme.fromSeed(
     seedColor: EqColors.primary,
+    brightness: EqColors.oscuro ? Brightness.dark : Brightness.light,
     primary: EqColors.primary,
     onPrimary: Colors.white,
     secondary: EqColors.indigo,
@@ -51,7 +53,7 @@ ThemeData buildEqTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: EqColors.primary,
-        side: const BorderSide(color: EqColors.primary),
+        side: BorderSide(color: EqColors.primary),
         minimumSize: const Size(64, 44),
         shape: forma,
         textStyle: EqText.button.copyWith(fontSize: 14),
@@ -77,22 +79,22 @@ ThemeData buildEqTheme() {
       focusedErrorBorder: borde(EqColors.error, 2),
       errorStyle: EqText.caption.copyWith(color: EqColors.errorText, letterSpacing: 0),
     ),
-    dividerTheme: const DividerThemeData(color: EqColors.borderLight, thickness: 1, space: 1),
+    dividerTheme: DividerThemeData(color: EqColors.borderLight, thickness: 1, space: 1),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: EqColors.surface,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: EqColors.primarySoft,
+      indicatorColor: EqColors.acentoFondo,
       elevation: 0,
       labelTextStyle: WidgetStateProperty.resolveWith(
         (estados) => EqText.caption.copyWith(
           letterSpacing: 0,
           fontWeight: estados.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w500,
-          color: estados.contains(WidgetState.selected) ? EqColors.primaryDark : EqColors.textMuted,
+          color: estados.contains(WidgetState.selected) ? EqColors.acento : EqColors.textMuted,
         ),
       ),
       iconTheme: WidgetStateProperty.resolveWith(
         (estados) =>
-            IconThemeData(color: estados.contains(WidgetState.selected) ? EqColors.primaryDark : EqColors.textMuted),
+            IconThemeData(color: estados.contains(WidgetState.selected) ? EqColors.acento : EqColors.textMuted),
       ),
     ),
     popupMenuTheme: PopupMenuThemeData(
@@ -101,12 +103,13 @@ ThemeData buildEqTheme() {
       shape: forma,
       textStyle: EqText.label,
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
+    bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: EqColors.surface,
       surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(EqRadius.lg))),
     ),
+    dialogTheme: DialogThemeData(backgroundColor: EqColors.surface, surfaceTintColor: Colors.transparent),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: EqColors.onSurface,
@@ -116,7 +119,7 @@ ThemeData buildEqTheme() {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(EqRadius.sm)),
       side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
+    progressIndicatorTheme: ProgressIndicatorThemeData(
       color: EqColors.primary,
       linearTrackColor: EqColors.surfaceContainer,
     ),

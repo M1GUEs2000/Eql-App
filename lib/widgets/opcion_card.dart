@@ -28,8 +28,8 @@ class OpcionCard extends StatelessWidget {
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(color: EqColors.primarySoft, borderRadius: BorderRadius.circular(EqRadius.md)),
-            child: Icon(icono, color: EqColors.primaryDark),
+            decoration: BoxDecoration(color: EqColors.acentoFondo, borderRadius: BorderRadius.circular(EqRadius.md)),
+            child: Icon(icono, color: EqColors.acento),
           ),
           const SizedBox(width: EqSpace.md),
           Expanded(
@@ -43,7 +43,7 @@ class OpcionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: EqSpace.sm),
-          const Icon(Icons.chevron_right, color: EqColors.textFaint),
+          Icon(Icons.chevron_right, color: EqColors.textFaint),
         ],
       ),
     );

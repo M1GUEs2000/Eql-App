@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../data/sesion.dart';
+import '../screens/configuracion_screen.dart';
 import '../screens/datos_screen.dart';
 import '../screens/login_screen.dart';
 import '../theme/eq_tokens.dart';
 
-enum _Opcion { datos, salir }
+enum _Opcion { datos, configuracion, salir }
 
 class UserMenu extends StatelessWidget {
   const UserMenu({super.key});
@@ -15,6 +16,8 @@ class UserMenu extends StatelessWidget {
     switch (opcion) {
       case _Opcion.datos:
         navegador.push(MaterialPageRoute<void>(builder: (_) => const DatosScreen()));
+      case _Opcion.configuracion:
+        navegador.push(MaterialPageRoute<void>(builder: (_) => const ConfiguracionScreen()));
       case _Opcion.salir:
         await Sesion.cerrar();
         navegador.pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => const LoginScreen()), (_) => false);
@@ -41,6 +44,8 @@ class UserMenu extends StatelessWidget {
         ),
         const PopupMenuDivider(),
         const PopupMenuItem(value: _Opcion.datos, child: _Item(Icons.badge_outlined, 'Editar datos del usuario')),
+        const PopupMenuItem(value: _Opcion.configuracion, child: _Item(Icons.settings_outlined, 'Configuración')),
+        const PopupMenuDivider(),
         const PopupMenuItem(value: _Opcion.salir, child: _Item(Icons.logout, 'Cerrar sesión')),
       ],
       child: Container(

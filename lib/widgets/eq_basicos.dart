@@ -9,8 +9,8 @@ class EqCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(EqSpace.md),
     this.onTap,
-    this.color = EqColors.surface,
-    this.borde = EqColors.borderLight,
+    this.color,
+    this.borde,
     this.radio = EqRadius.md,
     this.sombra = true,
   });
@@ -18,8 +18,8 @@ class EqCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
-  final Color color;
-  final Color borde;
+  final Color? color;
+  final Color? borde;
   final double radio;
   final bool sombra;
 
@@ -29,11 +29,11 @@ class EqCard extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(borderRadius: esquinas, boxShadow: sombra ? EqShadow.md : null),
       child: Material(
-        color: color,
+        color: color ?? EqColors.surface,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: esquinas,
-          side: BorderSide(color: borde),
+          side: BorderSide(color: borde ?? EqColors.borderLight),
         ),
         child: InkWell(
           onTap: onTap,
@@ -77,7 +77,7 @@ class EqChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final forma = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(EqRadius.sm),
-      side: activo ? BorderSide.none : const BorderSide(color: EqColors.borderLight),
+      side: activo ? BorderSide.none : BorderSide(color: EqColors.borderLight),
     );
     return Material(
       color: activo ? EqColors.indigo : EqColors.bg,
@@ -157,7 +157,7 @@ class ErrorCarga extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_outlined, size: 40, color: EqColors.textFaint),
+            Icon(Icons.cloud_off_outlined, size: 40, color: EqColors.textFaint),
             const SizedBox(height: 12),
             Text(mensaje, textAlign: TextAlign.center, style: EqText.bodySm),
             const SizedBox(height: EqSpace.md),

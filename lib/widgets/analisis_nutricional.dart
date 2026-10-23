@@ -139,7 +139,7 @@ class _AnalisisState extends State<_Analisis> {
         ),
         const _Encabezado(),
         for (final (i, n) in visibles.indexed) ...[
-          if (i > 0) const Divider(height: 1, indent: EqSpace.lg, endIndent: EqSpace.lg, color: EqColors.borderFaint),
+          if (i > 0) Divider(height: 1, indent: EqSpace.lg, endIndent: EqSpace.lg, color: EqColors.borderFaint),
           _FilaNutriente(
             n,
             abierto: _abiertos.contains(n),
@@ -404,7 +404,7 @@ class _BotonOrden extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.sort, size: 18, color: EqColors.primary),
+              Icon(Icons.sort, size: 18, color: EqColors.primary),
               const SizedBox(width: 6),
               Text('Orden: ${orden.etiqueta}', style: EqText.label.copyWith(color: EqColors.primary, fontSize: 13)),
               Icon(ascendente ? Icons.arrow_upward : Icons.arrow_downward, size: 14, color: EqColors.primary),

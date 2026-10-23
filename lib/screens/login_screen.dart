@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Bienvenido a Equilibra',
                     textAlign: TextAlign.center,
-                    style: EqText.h2.copyWith(color: EqColors.primaryDark),
+                    style: EqText.h2.copyWith(color: EqColors.acento),
                   ),
                   const SizedBox(height: EqSpace.xs),
                   Text(
