@@ -40,6 +40,9 @@ class _ShellScreenState extends State<ShellScreen> {
         child: NavigationBar(
           selectedIndex: _pestana,
           onDestinationSelected: _ir,
+          // Solo íconos; el label queda como tooltip y para el lector de pantalla.
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+          height: 64,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
