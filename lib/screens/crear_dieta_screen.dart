@@ -5,6 +5,7 @@ import '../data/cambios.dart';
 import '../data/models.dart';
 import '../theme/eq_tokens.dart';
 import '../widgets/eq_basicos.dart';
+import '../widgets/fecha_libre.dart';
 import '../widgets/hoja_inferior.dart';
 import '../widgets/progreso_ajuste.dart';
 
@@ -24,7 +25,10 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
   final List<DietaGuardada> _dietas =
       Cambios.ingestaActual.value?.dietas ?? const [];
   var _modo = _Modo.vacia;
-  var _fecha = DateTime.now();
+  late var _fecha = primerDiaLibre(
+    _dietas.map((d) => d.fecha),
+    DateTime.now(),
+  );
   String? _origen;
   var _intercambio = true;
   var _guardando = false;
@@ -37,12 +41,10 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
   }
 
   Future<void> _elegirFecha() async {
-    final hoy = DateTime.now();
-    final fecha = await showDatePicker(
-      context: context,
-      initialDate: _fecha,
-      firstDate: DateTime(hoy.year - 1),
-      lastDate: DateTime(hoy.year + 2),
+    final fecha = await elegirFechaLibre(
+      context,
+      ocupadas: _dietas.map((d) => d.fecha),
+      inicial: _fecha,
     );
     if (fecha != null) setState(() => _fecha = fecha);
   }

@@ -12,10 +12,14 @@ import '../widgets/comida_bloque.dart';
 import '../widgets/editar_item.dart';
 import '../widgets/eq_basicos.dart';
 import '../widgets/eq_top_bar.dart';
+import '../widgets/fecha_libre.dart';
 import '../widgets/popup_buscar.dart';
 import '../widgets/progreso_ajuste.dart';
 import '../widgets/hoja_inferior.dart';
 import 'crear_dieta_screen.dart';
+
+/// Dónde quedan los cambios del ajuste automático.
+enum _Destino { sobrescribir, fechaNueva, cancelar }
 
 /// Pestaña "Mis dietas": la ingesta de una fecha (GET ingesta) por tiempos de comida.
 class VerDietaScreen extends StatefulWidget {
@@ -345,6 +349,121 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     }
   }
 
+  /// Muestra cuánto mejora la dieta y pregunta dónde guardar los cambios.
+  Future<_Destino> _elegirDestino(Json r, int pasos) async {
+    final antes = numero(r['porcentajeKgInicial']);
+    final despues = numero(r['porcentajeKgFinal']);
+    final destino = await showDialog<_Destino>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Optimización lista'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Cumplimiento de tus objetivos',
+              style: EqText.caption.copyWith(letterSpacing: 0),
+            ),
+            const SizedBox(height: EqSpace.xs),
+            Text(
+              '${fmtNum(antes, 1)} %  →  ${fmtNum(despues, 1)} %',
+              style: EqText.h3.copyWith(color: EqColors.acento),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Equilibra encontró $pasos ${pasos == 1 ? 'cambio' : 'cambios'}. '
+              '¿Quieres sobrescribir esta dieta o guardarla en una fecha nueva?',
+              style: EqText.bodySm,
+            ),
+            const SizedBox(height: EqSpace.lg),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, _Destino.sobrescribir),
+              child: const Text('Sobrescribir esta dieta'),
+            ),
+            const SizedBox(height: EqSpace.sm),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context, _Destino.fechaNueva),
+              child: const Text('Guardar en una fecha nueva'),
+            ),
+            const SizedBox(height: EqSpace.xs),
+            TextButton(
+              onPressed: () => Navigator.pop(context, _Destino.cancelar),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    return destino ?? _Destino.cancelar;
+  }
+
+  /// Crea la dieta ajustada en otra fecha y deja la original como estaba.
+  Future<void> _guardarEnFechaNueva(String fecha, bool intercambio) async {
+    final ingesta = _ingesta!;
+    final dia = await elegirFechaLibre(
+      context,
+      ocupadas: ingesta.dietas.map((d) => d.fecha),
+      inicial: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (!mounted) return;
+    if (dia == null) {
+      // Cerró el calendario sin elegir: vuelve a las opciones.
+      return _decidirAjuste(fecha, intercambio, null);
+    }
+    final nueva = fechaApi(dia);
+    final base = ingesta.nombre.trim().isEmpty ? 'Dieta' : ingesta.nombre.trim();
+    final nombre = '$base ajustada';
+    await Api.post('ajuste/dieta-ajustada', {
+      'fechaOriginal': fecha,
+      'nuevaFecha': nueva,
+      'nombre': nombre.length > 120 ? nombre.substring(0, 120) : nombre,
+      'permitirIntercambio': intercambio,
+    });
+    if (!mounted) return;
+    await esperarAjuste(context, tipo: TipoAjuste.dietaAjustada, fecha: fecha);
+    // La original no cambia: se sueltan los cambios que quedaron pendientes.
+    await Api.post('ajuste/guiado/descartar', {'fecha': fecha});
+    if (!mounted) return;
+    mostrarMensaje(context, 'Dieta guardada el ${fechaVista(nueva)}');
+    Cambios.avisar(fechaIngesta: nueva);
+  }
+
+  Json? _ultimoAjuste;
+
+  Future<void> _decidirAjuste(
+    String fecha,
+    bool intercambio,
+    Json? resultado,
+  ) async {
+    final r = resultado ?? _ultimoAjuste!;
+    _ultimoAjuste = r;
+    final pasos = ((r['cantidadCambiosPendientes'] as num?) ?? 0).toInt();
+    final destino = await _elegirDestino(r, pasos);
+    if (!mounted) return;
+    switch (destino) {
+      case _Destino.sobrescribir:
+        setState(() => _ocupado = true);
+        try {
+          await Api.post('ajuste/guiado', {
+            'fecha': fecha,
+            'decision': 'APLICAR_CAMBIOS',
+          });
+        } finally {
+          if (mounted) setState(() => _ocupado = false);
+        }
+        if (!mounted) return;
+        mostrarMensaje(context, 'Dieta actualizada');
+        Cambios.avisar(fechaIngesta: fecha);
+      case _Destino.fechaNueva:
+        await _guardarEnFechaNueva(fecha, intercambio);
+      case _Destino.cancelar:
+        await Api.post('ajuste/guiado/descartar', {'fecha': fecha});
+        if (mounted) mostrarMensaje(context, 'Tu dieta quedó como estaba');
+    }
+  }
+
   Future<void> _optimizar() async {
     var intercambio = false;
     final si = await showDialog<bool>(
@@ -395,13 +514,21 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
         fecha: fecha,
       );
       if (!mounted) return;
-      mostrarMensaje(
-        context,
-        resultado == null
-            ? 'Optimización cancelada'
-            : (resultado['mensaje'] as String?) ?? 'Dieta optimizada',
-      );
-      await _cargar(fecha);
+      if (resultado == null) {
+        mostrarMensaje(context, 'Optimización cancelada');
+        return;
+      }
+      // El ajuste deja los cambios pendientes: la dieta solo cambia al aplicarlos.
+      final pendientes = (resultado['cantidadCambiosPendientes'] as num?) ?? 0;
+      if (pendientes <= 0) {
+        mostrarMensaje(
+          context,
+          (resultado['mensaje'] as String?) ??
+              'Tu dieta ya está lo más cerca posible de tus objetivos.',
+        );
+        return;
+      }
+      await _decidirAjuste(fecha, intercambio, resultado);
     } on ApiError catch (e) {
       if (mounted) mostrarMensaje(context, e.detalle);
     }
