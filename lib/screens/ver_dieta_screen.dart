@@ -102,6 +102,19 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     });
   }
 
+  /// Tocar el nombre de la comida marca todos sus alimentos, o los desmarca
+  /// si ya estaban todos marcados.
+  void _toggleComida(ComidaIngesta comida) {
+    final ids = comida.items.map((i) => i.id);
+    setState(() {
+      if (ids.every(_seleccionados.contains)) {
+        _seleccionados.removeAll(ids);
+      } else {
+        _seleccionados.addAll(ids);
+      }
+    });
+  }
+
   List<ItemIngesta> get _seleccion => [
     for (final c in _ingesta!.comidas)
       ...c.items.where((i) => _seleccionados.contains(i.id)),
@@ -656,6 +669,7 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
               seleccionados: _seleccionados,
               editable: editable,
               onToggle: _toggle,
+              onToggleComida: () => _toggleComida(comida),
               onAgregar: () => _agregar(comida),
               onEditar: _editar,
             ),

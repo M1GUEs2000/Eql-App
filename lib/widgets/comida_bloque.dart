@@ -13,6 +13,7 @@ class ComidaBloque extends StatelessWidget {
     required this.bloque,
     required this.seleccionados,
     required this.onToggle,
+    required this.onToggleComida,
     required this.onAgregar,
     required this.onEditar,
     this.editable = true,
@@ -21,6 +22,9 @@ class ComidaBloque extends StatelessWidget {
   final ComidaIngesta bloque;
   final Set<int> seleccionados;
   final ValueChanged<ItemIngesta> onToggle;
+
+  /// Marca o desmarca todos los alimentos de la comida.
+  final VoidCallback onToggleComida;
   final VoidCallback onAgregar;
   final ValueChanged<ItemIngesta> onEditar;
 
@@ -29,26 +33,44 @@ class ComidaBloque extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final todos = bloque.items.isNotEmpty && bloque.items.every((i) => seleccionados.contains(i.id));
+    final esquinas = BorderRadius.circular(EqRadius.base);
     return EqCard(
       padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.xs, EqSpace.xs, EqSpace.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, 10, 12, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    bloque.nombre,
-                    style: EqText.h4.copyWith(color: EqColors.primary, fontWeight: FontWeight.w600),
+            padding: const EdgeInsets.only(right: 12),
+            child: Semantics(
+              button: editable && bloque.items.isNotEmpty,
+              selected: todos,
+              hint: 'Seleccionar todos los alimentos de ${bloque.nombre}',
+              child: InkWell(
+                borderRadius: esquinas,
+                onTap: editable && bloque.items.isNotEmpty ? onToggleComida : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    children: [
+                      if (todos) ...[
+                        Icon(Icons.check_circle, color: EqColors.primary, size: 18),
+                        const SizedBox(width: EqSpace.sm),
+                      ],
+                      Expanded(
+                        child: Text(
+                          bloque.nombre,
+                          style: EqText.h4.copyWith(color: EqColors.primary, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Text(
+                        bloque.items.length == 1 ? '1 alimento' : '${bloque.items.length} alimentos',
+                        style: EqText.caption.copyWith(letterSpacing: 0),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  bloque.items.length == 1 ? '1 alimento' : '${bloque.items.length} alimentos',
-                  style: EqText.caption.copyWith(letterSpacing: 0),
-                ),
-              ],
+              ),
             ),
           ),
           Padding(
@@ -115,13 +137,25 @@ class _FilaItem extends StatelessWidget {
               Expanded(
                 child: Text(item.nombre, style: EqText.bodySm.copyWith(color: EqColors.onSurface)),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(item.cantidadTexto, style: EqText.label),
-                  if (item.unidad != 'gramos')
-                    Text('(${fmtNum(item.gramos, 1)} g)', style: EqText.caption.copyWith(letterSpacing: 0)),
-                ],
+              const SizedBox(width: EqSpace.sm),
+              // Unidades largas ("1 bebida pequeña 16 onzas fluidas") se parten en
+              // líneas en vez de quitarle el ancho al nombre.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 104),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      item.cantidadTexto,
+                      style: EqText.label,
+                      textAlign: TextAlign.right,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (item.unidad != 'gramos')
+                      Text('(${fmtNum(item.gramos, 1)} g)', style: EqText.caption.copyWith(letterSpacing: 0)),
+                  ],
+                ),
               ),
               const SizedBox(width: EqSpace.xs),
               IconButton(
