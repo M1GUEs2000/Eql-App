@@ -11,11 +11,17 @@ import 'hoja_inferior.dart';
 
 /// Abre el análisis nutricional (GET analisis) de [dieta] en una hoja inferior.
 /// [objetivos] aporta índice glucémico, costo y agua cuando el servidor los calcula.
-Future<void> verAnalisis(BuildContext context, String dieta, AnalisisNutricional analisis, {ObjetivosDia? objetivos}) {
+Future<void> verAnalisis(
+  BuildContext context,
+  String dieta,
+  AnalisisNutricional analisis, {
+  ObjetivosDia? objetivos,
+  String titulo = 'Análisis nutricional',
+}) {
   return abrirHoja<void>(
     context,
     HojaInferior(
-      titulo: 'Análisis nutricional',
+      titulo: titulo,
       subtitulo: analisis.estado.isEmpty ? dieta : '$dieta · ${analisis.estado}',
       child: _Analisis(analisis, objetivos),
     ),

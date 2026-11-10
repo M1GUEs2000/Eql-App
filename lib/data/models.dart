@@ -125,6 +125,7 @@ class ObjetivosDia {
     required this.agua,
     required this.indiceGlucemico,
     required this.costo,
+    required this.satisfaccion,
   });
 
   factory ObjetivosDia.desdeJson(Json? j) {
@@ -142,6 +143,7 @@ class ObjetivosDia {
       agua: numero(o['aguaTotal']),
       indiceGlucemico: numero(o['igPromedio']),
       costo: numero(o['costoTotal']),
+      satisfaccion: numero(o['satisfaccion']),
     );
   }
 
@@ -158,6 +160,9 @@ class ObjetivosDia {
   final double indiceGlucemico;
   final double costo;
 
+  /// Satisfacción general del día en % (la API la calcula sin consumir cupo de análisis).
+  final double satisfaccion;
+
   double get avance => objKcal <= 0 ? 0 : kcal / objKcal;
 }
 
@@ -169,6 +174,16 @@ class DietaGuardada {
   final String titulo;
 
   String get etiqueta => titulo.trim().isEmpty ? fechaVista(fecha) : '${fechaVista(fecha)} · ${titulo.trim()}';
+}
+
+/// La dieta guardada más cercana a hoy sin pasarse; si todas son futuras, la primera.
+String fechaDietaMasReciente(List<DietaGuardada> dietas) {
+  final hoy = fechaApi(DateTime.now());
+  final pasadas = [
+    for (final d in dietas)
+      if (d.fecha.compareTo(hoy) <= 0) d.fecha,
+  ]..sort();
+  return pasadas.isEmpty ? dietas.first.fecha : pasadas.last;
 }
 
 /// GET ingesta: comidas del día, objetivos y dietas guardadas.

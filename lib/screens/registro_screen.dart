@@ -1,9 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../data/api.dart';
 import '../data/sesion.dart';
 import '../theme/eq_tokens.dart';
 import '../widgets/eq_basicos.dart';
+import '../widgets/hoja_politica.dart';
 import 'shell_screen.dart';
 
 class RegistroScreen extends StatefulWidget {
@@ -44,6 +46,10 @@ class _RegistroScreenState extends State<RegistroScreen> {
   var _cookies = false;
   var _enviando = false;
   String? _error;
+  late final _verPrivacidad = TapGestureRecognizer()
+    ..onTap = () => abrirPolitica(context, Politica.privacidad);
+  late final _verCookies = TapGestureRecognizer()
+    ..onTap = () => abrirPolitica(context, Politica.cookies);
 
   @override
   void dispose() {
@@ -51,11 +57,35 @@ class _RegistroScreenState extends State<RegistroScreen> {
     _correo.dispose();
     _confirmar.dispose();
     _otro.dispose();
+    _verPrivacidad.dispose();
+    _verCookies.dispose();
     super.dispose();
   }
 
   String? _requerido(String? valor, String mensaje) =>
       (valor == null || valor.trim().isEmpty) ? mensaje : null;
+
+  // El enlace abre la política; el resto de la fila marca la casilla.
+  Widget _aceptaPolitica(String nombre, TapGestureRecognizer verPolitica) {
+    return Text.rich(
+      TextSpan(
+        text: 'Acepto la ',
+        children: [
+          TextSpan(
+            text: nombre,
+            recognizer: verPolitica,
+            style: TextStyle(
+              color: EqColors.primary,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.underline,
+              decorationColor: EqColors.primary,
+            ),
+          ),
+        ],
+      ),
+      style: EqText.bodySm,
+    );
+  }
 
   Future<void> _enviar() async {
     if (!_formulario.currentState!.validate()) return;
@@ -215,9 +245,9 @@ class _RegistroScreenState extends State<RegistroScreen> {
                           setState(() => _privacidad = v ?? false),
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(
-                        'Acepto la política de privacidad',
-                        style: EqText.bodySm,
+                      title: _aceptaPolitica(
+                        'política de privacidad',
+                        _verPrivacidad,
                       ),
                     ),
                     CheckboxListTile(
@@ -225,9 +255,9 @@ class _RegistroScreenState extends State<RegistroScreen> {
                       onChanged: (v) => setState(() => _cookies = v ?? false),
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(
-                        'Acepto la política de cookies',
-                        style: EqText.bodySm,
+                      title: _aceptaPolitica(
+                        'política de cookies',
+                        _verCookies,
                       ),
                     ),
                     if (_error != null) ...[

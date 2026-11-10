@@ -36,6 +36,14 @@ class _ShellScreenState extends State<ShellScreen> {
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: EqColors.borderLight)),
+          // Sombra suave hacia arriba que separa la barra del contenido.
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: EqColors.oscuro ? 0.4 : 0.07),
+              offset: const Offset(0, -2),
+              blurRadius: 12,
+            ),
+          ],
         ),
         child: NavigationBar(
           selectedIndex: _pestana,

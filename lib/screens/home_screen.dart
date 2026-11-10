@@ -76,7 +76,8 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// Saludo con la fecha y el resumen de calorías de hoy (GET ingesta/objetivos).
+/// Saludo con la fecha y la última dieta del usuario con su satisfacción general.
+/// Usa la misma regla que "Ver mis dietas" para elegir la dieta (GET ingesta).
 class _Bienvenida extends StatefulWidget {
   const _Bienvenida({required this.onIrAPestana});
 
@@ -111,7 +112,7 @@ class _BienvenidaState extends State<_Bienvenida> {
     'diciembre',
   ];
 
-  ObjetivosDia? _hoy;
+  Ingesta? _dieta;
   var _fallo = false;
 
   @override
@@ -129,10 +130,16 @@ class _BienvenidaState extends State<_Bienvenida> {
 
   Future<void> _cargar() async {
     try {
-      final datos = await Api.get('ingesta/objetivos') as Json;
+      var ingesta = Ingesta.desdeJson(await Api.get('ingesta') as Json);
+      // Sin dieta hoy se muestra la más reciente, igual que en "Ver mis dietas".
+      if (ingesta.vacia && ingesta.dietas.isNotEmpty) {
+        ingesta = Ingesta.desdeJson(
+          await Api.get('ingesta', {'fecha': fechaDietaMasReciente(ingesta.dietas)}) as Json,
+        );
+      }
       if (mounted) {
         setState(() {
-          _hoy = ObjetivosDia.desdeJson(datos);
+          _dieta = ingesta;
           _fallo = false;
         });
       }
@@ -145,7 +152,7 @@ class _BienvenidaState extends State<_Bienvenida> {
   Widget build(BuildContext context) {
     final f = DateTime.now();
     final fecha = '${_dias[f.weekday - 1]} ${f.day} de ${_meses[f.month - 1]}';
-    final hoy = _hoy;
+    final dieta = _dieta;
     return Padding(
       padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.lg, EqSpace.md, 0),
       child: Column(
@@ -161,38 +168,40 @@ class _BienvenidaState extends State<_Bienvenida> {
           // Si el resumen no carga, el inicio sigue sirviendo sin él.
           if (_fallo)
             const SizedBox.shrink()
-          else if (hoy == null)
+          else if (dieta == null)
             const SizedBox(height: 120, child: Cargando())
-          else if (!hoy.tieneObjetivo || hoy.objKcal <= 0)
+          else if (dieta.vacia)
             OpcionCard(
-              icono: Icons.flag_outlined,
-              titulo: 'Define tu objetivo diario',
-              descripcion:
-                  'Crea una evaluación para saber cuántas calorías te tocan al día',
-              onTap: () => widget.onIrAPestana(4),
+              icono: Icons.restaurant_menu,
+              titulo: 'Crea tu primera dieta',
+              descripcion: 'Aquí verás tu última dieta y qué tan bien cubre tus nutrientes',
+              onTap: () => abrirHoja<void>(context, const CrearDietaScreen()),
             )
           else
-            _ResumenHoy(hoy, onTap: () => widget.onIrAPestana(1)),
+            _UltimaDieta(dieta, onTap: () => widget.onIrAPestana(1)),
         ],
       ),
     );
   }
 }
 
-class _ResumenHoy extends StatelessWidget {
-  const _ResumenHoy(this.d, {required this.onTap});
+class _UltimaDieta extends StatelessWidget {
+  const _UltimaDieta(this.d, {required this.onTap});
 
-  final ObjetivosDia d;
+  final Ingesta d;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final restan = (d.objKcal - d.kcal).round();
+    final pct = d.objetivos.satisfaccion;
+    final nombre = d.nombre.isEmpty ? 'Dieta sin nombre' : d.nombre;
+    // Mismo corte que el análisis nutricional: desde 90 % se considera bien cubierta.
+    final color = pct >= 90 ? EqColors.primary : EqColors.warning;
     return Semantics(
       button: true,
       label:
-          'Hoy llevas ${d.kcal.round()} de ${d.objKcal.round()} kilocalorías. '
-          'Ver mis dietas',
+          'Tu última dieta: $nombre, del ${fechaVista(d.fecha)}. '
+          'Satisfacción general ${pct.round()} %. Ver mis dietas',
       excludeSemantics: true,
       child: EqCard(
         radio: EqRadius.lg,
@@ -205,28 +214,24 @@ class _ResumenHoy extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   CircularProgressIndicator(
-                    value: (d.kcal / d.objKcal).clamp(0, 1).toDouble(),
+                    value: (pct / 100).clamp(0, 1).toDouble(),
                     strokeWidth: 8,
                     strokeCap: StrokeCap.round,
-                    color: restan < 0 ? EqColors.warning : EqColors.primary,
+                    color: color,
                     backgroundColor: EqColors.surfaceContainer,
                   ),
                   Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${d.kcal.round()}',
-                          style: EqText.h3.copyWith(
-                            fontWeight: FontWeight.w700,
-                            height: 1.1,
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: '${pct.round()}'),
+                          TextSpan(
+                            text: '%',
+                            style: EqText.caption.copyWith(letterSpacing: 0),
                           ),
-                        ),
-                        Text(
-                          'kcal',
-                          style: EqText.caption.copyWith(letterSpacing: 0),
-                        ),
-                      ],
+                        ],
+                      ),
+                      style: EqText.h3.copyWith(fontWeight: FontWeight.w700, height: 1.1),
                     ),
                   ),
                 ],
@@ -237,62 +242,26 @@ class _ResumenHoy extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text('TU ÚLTIMA DIETA', style: EqText.caption),
+                  const SizedBox(height: 2),
                   Text(
-                    restan >= 0
-                        ? 'Te quedan $restan kcal'
-                        : 'Pasaste tu objetivo por ${-restan} kcal',
+                    nombre,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  Text(
-                    'de ${d.objKcal.round()} kcal para hoy',
-                    style: EqText.bodySm,
-                  ),
+                  Text(fechaVista(d.fecha), style: EqText.bodySm),
                   const SizedBox(height: 6),
-                  _Macro('Proteínas', d.proteinas, d.objProteinas),
-                  _Macro('Carbohidratos', d.carbohidratos, d.objCarbohidratos),
-                  _Macro('Grasas', d.grasa, d.objGrasa),
+                  Text(
+                    'Satisfacción general',
+                    style: EqText.label.copyWith(color: EqColors.acento, fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             ),
+            Icon(Icons.chevron_right, color: EqColors.textMuted),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Macro extends StatelessWidget {
-  const _Macro(this.nombre, this.valor, this.objetivo);
-
-  final String nombre;
-  final double valor;
-  final double objetivo;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(
-              nombre,
-              style: EqText.caption.copyWith(letterSpacing: 0),
-            ),
-          ),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: objetivo <= 0 ? 0 : (valor / objetivo).clamp(0, 1),
-                minHeight: 6,
-                color: EqColors.primaryLight,
-                backgroundColor: EqColors.surfaceContainer,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

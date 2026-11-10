@@ -26,12 +26,16 @@ class AccionFlotante {
     required this.etiqueta,
     required this.color,
     required this.onTap,
+    this.insignia = 0,
   });
 
   final IconData icono;
   final String etiqueta;
   final Color color;
   final VoidCallback onTap;
+
+  /// Número en la esquina del botón; solo se muestra desde 2.
+  final int insignia;
 }
 
 /// Pone un botón verde de tres rayas flotando arriba a la derecha de [child];
@@ -447,31 +451,39 @@ class _BotonAccion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final insignia = accion.insignia;
     return Semantics(
       button: true,
-      label: accion.etiqueta,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: EqColors.surface,
-          border: Border.all(color: accion.color.withValues(alpha: 0.3)),
-          boxShadow: [
-            BoxShadow(
-              color: accion.color.withValues(alpha: 0.28),
-              offset: const Offset(0, 4),
-              blurRadius: 12,
+      label: insignia > 1 ? '${accion.etiqueta} ($insignia)' : accion.etiqueta,
+      child: Badge(
+        isLabelVisible: insignia > 1,
+        label: Text('$insignia'),
+        backgroundColor: accion.color,
+        textColor: Colors.white,
+        offset: const Offset(2, -2),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: EqColors.surface,
+            border: Border.all(color: accion.color.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: accion.color.withValues(alpha: 0.28),
+                offset: const Offset(0, 4),
+                blurRadius: 12,
+              ),
+            ],
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: accion.onTap,
+              child: Icon(accion.icono, color: accion.color, size: 22),
             ),
-          ],
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: accion.onTap,
-            child: Icon(accion.icono, color: accion.color, size: 22),
           ),
         ),
       ),

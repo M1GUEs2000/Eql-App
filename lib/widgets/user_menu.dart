@@ -48,16 +48,7 @@ class UserMenu extends StatelessWidget {
         const PopupMenuDivider(),
         const PopupMenuItem(value: _Opcion.salir, child: _Item(Icons.logout, 'Cerrar sesión')),
       ],
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-        ),
-        child: const Icon(Icons.person_outline, color: Colors.white, size: 20),
-      ),
+      icon: Icon(Icons.more_vert, color: EqColors.onSurface),
     );
   }
 }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/eq_tokens.dart';
 import 'user_menu.dart';
 
-/// Barra superior verde oscuro con el filo de luz de la .site-header.
+/// Barra superior sin franja: fondo de la pantalla, la marca y el menú de tres puntos.
 /// Sin [titulo] muestra la marca; con [titulo] se usa en pantallas secundarias.
 class EqTopBar extends StatelessWidget implements PreferredSizeWidget {
   const EqTopBar({super.key, this.titulo, this.acciones = const []});
@@ -12,7 +12,7 @@ class EqTopBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> acciones;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 3);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
@@ -21,15 +21,8 @@ class EqTopBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         ...acciones,
         const UserMenu(),
-        const SizedBox(width: EqSpace.sm),
+        const SizedBox(width: EqSpace.xs),
       ],
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(3),
-        child: DecoratedBox(
-          decoration: BoxDecoration(gradient: EqGradients.filo),
-          child: SizedBox(height: 3, width: double.infinity),
-        ),
-      ),
     );
   }
 }
@@ -39,25 +32,15 @@ class _Marca extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final estilo = EqText.h3.copyWith(color: Colors.white, fontWeight: FontWeight.w700);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset('assets/images/logo_25.png', width: 25, height: 25),
-        const SizedBox(width: EqSpace.sm),
-        Text.rich(
-          TextSpan(
-            style: estilo,
-            children: const [
-              TextSpan(text: 'Equi'),
-              TextSpan(
-                text: 'libra',
-                style: TextStyle(color: EqColors.primarySoft),
-              ),
-            ],
-          ),
-        ),
-      ],
+    final estilo = EqText.h3.copyWith(color: EqColors.onSurface, fontWeight: FontWeight.w700);
+    return Text.rich(
+      TextSpan(
+        style: estilo,
+        children: [
+          const TextSpan(text: 'Equi'),
+          TextSpan(text: 'libra', style: TextStyle(color: EqColors.acento)),
+        ],
+      ),
     );
   }
 }

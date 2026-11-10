@@ -60,9 +60,13 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
   }
 
   Future<void> _buscar() async {
-    final termino = _busqueda.text.trim();
+    final escrito = _busqueda.text.trim();
     FocusScope.of(context).unfocus();
-    if (termino.isEmpty) return;
+    final despensa = _pestana == _Pestana.despensa;
+    if (escrito.isEmpty && !despensa) return;
+    // La API exige término; en Mi despensa sin texto se manda "%", que el LIKE
+    // del servidor toma como comodín y devuelve toda la despensa (máximo 50).
+    final termino = escrito.isEmpty ? '%' : escrito;
     setState(() {
       _cargando = true;
       _error = null;
@@ -71,7 +75,7 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
       final lista = await Api.get('ingesta/alimentos/buscar', {
         'termino': termino,
         'tipo': _pestana.tipo,
-        if (_pestana == _Pestana.despensa) 'soloDespensa': true,
+        if (despensa) 'soloDespensa': true,
       }) as List;
       if (!mounted) return;
       setState(() => _resultados = [for (final a in lista) AlimentoBusqueda.desdeJson(a as Json)]);
@@ -84,7 +88,7 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
 
   void _cambiarPestana(_Pestana p) {
     setState(() => _pestana = p);
-    if (_busqueda.text.trim().isNotEmpty) _buscar();
+    if (p == _Pestana.despensa || _busqueda.text.trim().isNotEmpty) _buscar();
   }
 
   @override

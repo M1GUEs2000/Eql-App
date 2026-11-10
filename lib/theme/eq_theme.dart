@@ -31,13 +31,15 @@ ThemeData buildEqTheme() {
     scaffoldBackgroundColor: EqColors.bg,
     textTheme: base.textTheme.apply(bodyColor: EqColors.onSurface, displayColor: EqColors.onSurface),
     appBarTheme: AppBarTheme(
-      backgroundColor: EqColors.primaryDark,
-      foregroundColor: Colors.white,
+      // Barra sin franja: mismo fondo que la pantalla y texto según el modo.
+      backgroundColor: EqColors.bg,
+      foregroundColor: EqColors.onSurface,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-      titleTextStyle: EqText.h4.copyWith(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+      systemOverlayStyle: EqColors.oscuro ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      titleTextStyle: EqText.h4.copyWith(color: EqColors.onSurface, fontSize: 18, fontWeight: FontWeight.w600),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(

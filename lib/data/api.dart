@@ -25,7 +25,7 @@ class ApiError implements Exception {
 /// Cliente de la API v1. Todas las respuestas vienen como {ok, mensaje, datos};
 /// cada método devuelve `datos` o lanza [ApiError].
 abstract final class Api {
-  static const base = 'https://web-e.equilibra.ec/api/v1';
+  static const base = 'https://web.equilibra.ec/api/v1';
   static const _espera = Duration(seconds: 60);
 
   static String? token;
@@ -76,8 +76,8 @@ abstract final class Api {
     final http.Response respuesta;
     try {
       respuesta = await http.Response.fromStream(await pedido.send().timeout(_espera));
-    } on Exception {
-      throw const ApiError('No se pudo conectar con Equilibra. Revisa tu conexión a Internet.');
+    } on Exception catch (e) {
+      throw ApiError('No se pudo conectar con Equilibra. Revisa tu conexión a Internet.\n(${e.runtimeType}: $e)');
     }
 
     final Object? json;

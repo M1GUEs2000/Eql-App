@@ -18,8 +18,8 @@ import '../widgets/progreso_ajuste.dart';
 import '../widgets/hoja_inferior.dart';
 import 'crear_dieta_screen.dart';
 
-/// Dónde quedan los cambios del ajuste automático.
-enum _Destino { sobrescribir, fechaNueva, cancelar }
+/// Dónde quedan los cambios del ajuste automático; se elige antes de optimizar.
+enum _Destino { sobrescribir, fechaNueva }
 
 /// Pestaña "Mis dietas": la ingesta de una fecha (GET ingesta) por tiempos de comida.
 class VerDietaScreen extends StatefulWidget {
@@ -31,6 +31,10 @@ class VerDietaScreen extends StatefulWidget {
 
 class _VerDietaScreenState extends State<VerDietaScreen> {
   Ingesta? _ingesta;
+
+  /// Análisis del día completo de [_ingesta]; da la satisfacción de la tarjeta
+  /// y se reutiliza en "Ver más".
+  AnalisisNutricional? _analisis;
   String? _error;
   var _cargando = true;
   var _ocupado = false;
@@ -67,7 +71,7 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
       // Sin fecha la API abre la de hoy; si hoy no hay dieta se abre la más reciente.
       if (fecha == null && ingesta.vacia && ingesta.dietas.isNotEmpty) {
         ingesta = Ingesta.desdeJson(
-          await Api.get('ingesta', {'fecha': _masReciente(ingesta.dietas)})
+          await Api.get('ingesta', {'fecha': fechaDietaMasReciente(ingesta.dietas)})
               as Json,
         );
       }
@@ -79,6 +83,7 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
         );
       });
       Cambios.ingestaActual.value = ingesta;
+      _cargarAnalisis(ingesta);
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
     } finally {
@@ -86,14 +91,21 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     }
   }
 
-  /// La dieta guardada más cercana a hoy sin pasarse; si todas son futuras, la primera.
-  static String _masReciente(List<DietaGuardada> dietas) {
-    final hoy = fechaApi(DateTime.now());
-    final pasadas = [
-      for (final d in dietas)
-        if (d.fecha.compareTo(hoy) <= 0) d.fecha,
-    ]..sort();
-    return pasadas.isEmpty ? dietas.first.fecha : pasadas.last;
+  /// Pide el análisis del día para la tarjeta; si falla, la tarjeta queda sin número.
+  Future<void> _cargarAnalisis(Ingesta ingesta) async {
+    setState(() => _analisis = null);
+    if (ingesta.vacia || ingesta.totalItems == 0) return;
+    try {
+      final datos = await Api.get('analisis', {
+        'fecha': ingesta.fecha,
+        'tipo': 'DIA-COMPLETO',
+      }) as Json;
+      if (mounted && identical(_ingesta, ingesta)) {
+        setState(() => _analisis = AnalisisNutricional.desdeJson(datos));
+      }
+    } on ApiError {
+      // Sin análisis la tarjeta muestra "—"; "Ver más" lo vuelve a intentar.
+    }
   }
 
   void _toggle(ItemIngesta item) {
@@ -337,14 +349,46 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     );
   }
 
-  Future<void> _verAnalisis() async {
+  /// Nutrientes solo de los alimentos marcados (GET analisis por ids de fila).
+  /// En el servidor PLATO y ALIMENTO filtran igual por id, así que va una sola llamada.
+  Future<void> _verNutrientes() async {
     final ingesta = _ingesta!;
+    final seleccion = _seleccion;
+    if (seleccion.isEmpty) return;
     setState(() => _ocupado = true);
     try {
       final datos = await Api.get('analisis', {
         'fecha': ingesta.fecha,
-        'tipo': 'DIA-COMPLETO',
+        'tipo': 'ALIMENTO',
+        'ids': seleccion.map((i) => i.id).join(','),
       }) as Json;
+      if (!mounted) return;
+      await verAnalisis(
+        context,
+        seleccion.length == 1 ? seleccion.first.nombre : '${seleccion.length} alimentos',
+        AnalisisNutricional.desdeJson(datos),
+        titulo: 'Ver nutrientes',
+      );
+    } on ApiError catch (e) {
+      if (mounted) mostrarMensaje(context, e.detalle);
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
+  Future<void> _verAnalisis() async {
+    final ingesta = _ingesta!;
+    setState(() => _ocupado = true);
+    try {
+      final analisis =
+          _analisis ??
+          AnalisisNutricional.desdeJson(
+            await Api.get('analisis', {
+                  'fecha': ingesta.fecha,
+                  'tipo': 'DIA-COMPLETO',
+                })
+                as Json,
+          );
       if (!mounted) return;
       final nombre = ingesta.nombre.isEmpty
           ? fechaVista(ingesta.fecha)
@@ -352,7 +396,7 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
       await verAnalisis(
         context,
         nombre,
-        AnalisisNutricional.desdeJson(datos),
+        analisis,
         objetivos: ingesta.objetivos,
       );
     } on ApiError catch (e) {
@@ -362,70 +406,163 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     }
   }
 
-  /// Muestra cuánto mejora la dieta y pregunta dónde guardar los cambios.
-  Future<_Destino> _elegirDestino(Json r, int pasos) async {
-    final antes = numero(r['porcentajeKgInicial']);
-    final despues = numero(r['porcentajeKgFinal']);
-    final destino = await showDialog<_Destino>(
+  /// Antes de optimizar: permitir reemplazos y dónde guardar el resultado.
+  /// Devuelve null si se canceló.
+  Future<({bool intercambio, String? nuevaFecha})?> _pedirOpciones() {
+    final ocupadas = _ingesta!.dietas.map((d) => d.fecha).toList();
+    var intercambio = false;
+    var destino = _Destino.sobrescribir;
+    DateTime? dia;
+    return showDialog<({bool intercambio, String? nuevaFecha})>(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Optimización lista'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Cumplimiento de tus objetivos',
-              style: EqText.caption.copyWith(letterSpacing: 0),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogo) {
+          Future<void> elegirFecha() async {
+            final elegido = await elegirFechaLibre(
+              context,
+              ocupadas: ocupadas,
+              inicial:
+                  dia ??
+                  primerDiaLibre(
+                    ocupadas,
+                    DateTime.now().add(const Duration(days: 1)),
+                  ),
+            );
+            if (elegido == null) return;
+            setDialogo(() {
+              dia = elegido;
+              destino = _Destino.fechaNueva;
+            });
+          }
+
+          Widget opcion(
+            _Destino valor,
+            String titulo,
+            String? subtitulo,
+            VoidCallback onTap,
+          ) {
+            final marcada = destino == valor;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                marcada ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: marcada ? EqColors.acento : EqColors.textFaint,
+              ),
+              title: Text(titulo),
+              subtitle: subtitulo == null ? null : Text(subtitulo),
+              onTap: onTap,
+            );
+          }
+
+          final elegida = dia;
+          final listo = destino == _Destino.sobrescribir || elegida != null;
+          return AlertDialog(
+            title: const Text('Optimizar dieta'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Equilibra ajustará las cantidades para acercar la dieta a tus objetivos. Usa el cupo de ajuste automático de tu plan.',
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: intercambio,
+                    onChanged: (v) => setDialogo(() => intercambio = v),
+                    title: const Text('Permitir reemplazar alimentos'),
+                  ),
+                  const SizedBox(height: EqSpace.sm),
+                  Text('¿Dónde guardar el resultado?', style: EqText.label),
+                  opcion(
+                    _Destino.sobrescribir,
+                    'Sobrescribir esta dieta',
+                    null,
+                    () => setDialogo(() => destino = _Destino.sobrescribir),
+                  ),
+                  opcion(
+                    _Destino.fechaNueva,
+                    'Guardar en una fecha nueva',
+                    elegida == null
+                        ? 'Toca para elegir la fecha'
+                        : fechaVista(fechaApi(elegida)),
+                    elegirFecha,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: EqSpace.xs),
-            Text(
-              '${fmtNum(antes, 1)} %  →  ${fmtNum(despues, 1)} %',
-              style: EqText.h3.copyWith(color: EqColors.acento),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Equilibra encontró $pasos ${pasos == 1 ? 'cambio' : 'cambios'}. '
-              '¿Quieres sobrescribir esta dieta o guardarla en una fecha nueva?',
-              style: EqText.bodySm,
-            ),
-            const SizedBox(height: EqSpace.lg),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, _Destino.sobrescribir),
-              child: const Text('Sobrescribir esta dieta'),
-            ),
-            const SizedBox(height: EqSpace.sm),
-            OutlinedButton(
-              onPressed: () => Navigator.pop(context, _Destino.fechaNueva),
-              child: const Text('Guardar en una fecha nueva'),
-            ),
-            const SizedBox(height: EqSpace.xs),
-            TextButton(
-              onPressed: () => Navigator.pop(context, _Destino.cancelar),
-              child: const Text('Cancelar'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: listo
+                    ? () => Navigator.pop(context, (
+                        intercambio: intercambio,
+                        nuevaFecha: destino == _Destino.fechaNueva
+                            ? fechaApi(elegida!)
+                            : null,
+                      ))
+                    : null,
+                child: const Text('Optimizar'),
+              ),
+            ],
+          );
+        },
       ),
     );
-    return destino ?? _Destino.cancelar;
   }
 
-  /// Crea la dieta ajustada en otra fecha y deja la original como estaba.
-  Future<void> _guardarEnFechaNueva(String fecha, bool intercambio) async {
-    final ingesta = _ingesta!;
-    final dia = await elegirFechaLibre(
+  /// Ajusta la dieta y aplica los cambios sobre ella misma.
+  /// Devuelve null si se canceló o no hubo nada que cambiar.
+  Future<Json?> _optimizarAqui(String fecha, bool intercambio) async {
+    await Api.post('ajuste/automatico', {
+      'fecha': fecha,
+      'permitirIntercambio': intercambio,
+      'origen': 'app-movil',
+    });
+    if (!mounted) return null;
+    final resultado = await esperarAjuste(
       context,
-      ocupadas: ingesta.dietas.map((d) => d.fecha),
-      inicial: DateTime.now().add(const Duration(days: 1)),
+      tipo: TipoAjuste.automatico,
+      fecha: fecha,
     );
-    if (!mounted) return;
-    if (dia == null) {
-      // Cerró el calendario sin elegir: vuelve a las opciones.
-      return _decidirAjuste(fecha, intercambio, null);
+    if (!mounted) return null;
+    if (resultado == null) {
+      mostrarMensaje(context, 'Optimización cancelada');
+      return null;
     }
-    final nueva = fechaApi(dia);
+    // El ajuste deja los cambios pendientes: la dieta solo cambia al aplicarlos.
+    final pendientes = (resultado['cantidadCambiosPendientes'] as num?) ?? 0;
+    if (pendientes <= 0) {
+      mostrarMensaje(
+        context,
+        (resultado['mensaje'] as String?) ??
+            'Tu dieta ya está lo más cerca posible de tus objetivos.',
+      );
+      return null;
+    }
+    setState(() => _ocupado = true);
+    try {
+      await Api.post('ajuste/guiado', {
+        'fecha': fecha,
+        'decision': 'APLICAR_CAMBIOS',
+      });
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+    return resultado;
+  }
+
+  /// Crea la dieta ajustada en [nueva]; la original queda como estaba.
+  /// El servidor corre el ajuste, crea la dieta y descarta los pendientes.
+  Future<Json?> _optimizarEnFecha(
+    String fecha,
+    String nueva,
+    bool intercambio,
+  ) async {
+    final ingesta = _ingesta!;
     final base = ingesta.nombre.trim().isEmpty ? 'Dieta' : ingesta.nombre.trim();
     final nombre = '$base ajustada';
     await Api.post('ajuste/dieta-ajustada', {
@@ -434,114 +571,27 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
       'nombre': nombre.length > 120 ? nombre.substring(0, 120) : nombre,
       'permitirIntercambio': intercambio,
     });
-    if (!mounted) return;
-    await esperarAjuste(context, tipo: TipoAjuste.dietaAjustada, fecha: fecha);
-    // La original no cambia: se sueltan los cambios que quedaron pendientes.
-    await Api.post('ajuste/guiado/descartar', {'fecha': fecha});
-    if (!mounted) return;
-    mostrarMensaje(context, 'Dieta guardada el ${fechaVista(nueva)}');
-    Cambios.avisar(fechaIngesta: nueva);
-  }
-
-  Json? _ultimoAjuste;
-
-  Future<void> _decidirAjuste(
-    String fecha,
-    bool intercambio,
-    Json? resultado,
-  ) async {
-    final r = resultado ?? _ultimoAjuste!;
-    _ultimoAjuste = r;
-    final pasos = ((r['cantidadCambiosPendientes'] as num?) ?? 0).toInt();
-    final destino = await _elegirDestino(r, pasos);
-    if (!mounted) return;
-    switch (destino) {
-      case _Destino.sobrescribir:
-        setState(() => _ocupado = true);
-        try {
-          await Api.post('ajuste/guiado', {
-            'fecha': fecha,
-            'decision': 'APLICAR_CAMBIOS',
-          });
-        } finally {
-          if (mounted) setState(() => _ocupado = false);
-        }
-        if (!mounted) return;
-        mostrarMensaje(context, 'Dieta actualizada');
-        Cambios.avisar(fechaIngesta: fecha);
-      case _Destino.fechaNueva:
-        await _guardarEnFechaNueva(fecha, intercambio);
-      case _Destino.cancelar:
-        await Api.post('ajuste/guiado/descartar', {'fecha': fecha});
-        if (mounted) mostrarMensaje(context, 'Tu dieta quedó como estaba');
-    }
+    if (!mounted) return null;
+    return esperarAjuste(context, tipo: TipoAjuste.dietaAjustada, fecha: fecha);
   }
 
   Future<void> _optimizar() async {
-    var intercambio = false;
-    final si = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogo) => AlertDialog(
-          title: const Text('Optimizar dieta'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Equilibra ajustará las cantidades para acercar la dieta a tus objetivos. Usa el cupo de ajuste automático de tu plan.',
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: intercambio,
-                onChanged: (v) => setDialogo(() => intercambio = v),
-                title: const Text('Permitir reemplazar alimentos'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Optimizar'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (si != true || !mounted) return;
+    final opciones = await _pedirOpciones();
+    if (opciones == null || !mounted) return;
     final fecha = _ingesta!.fecha;
+    final nueva = opciones.nuevaFecha;
     try {
-      await Api.post('ajuste/automatico', {
-        'fecha': fecha,
-        'permitirIntercambio': intercambio,
-        'origen': 'app-movil',
-      });
-      if (!mounted) return;
-      final resultado = await esperarAjuste(
+      final resultado = nueva == null
+          ? await _optimizarAqui(fecha, opciones.intercambio)
+          : await _optimizarEnFecha(fecha, nueva, opciones.intercambio);
+      if (resultado == null || !mounted) return;
+      mostrarMensaje(
         context,
-        tipo: TipoAjuste.automatico,
-        fecha: fecha,
+        nueva == null
+            ? 'Dieta optimizada'
+            : 'Dieta ajustada guardada el ${fechaVista(nueva)}',
       );
-      if (!mounted) return;
-      if (resultado == null) {
-        mostrarMensaje(context, 'Optimización cancelada');
-        return;
-      }
-      // El ajuste deja los cambios pendientes: la dieta solo cambia al aplicarlos.
-      final pendientes = (resultado['cantidadCambiosPendientes'] as num?) ?? 0;
-      if (pendientes <= 0) {
-        mostrarMensaje(
-          context,
-          (resultado['mensaje'] as String?) ??
-              'Tu dieta ya está lo más cerca posible de tus objetivos.',
-        );
-        return;
-      }
-      await _decidirAjuste(fecha, intercambio, resultado);
+      Cambios.avisar(fechaIngesta: nueva ?? fecha);
     } on ApiError catch (e) {
       if (mounted) mostrarMensaje(context, e.detalle);
     }
@@ -577,6 +627,13 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
         ],
         seleccionados: editable ? _seleccionados.length : 0,
         accionesSeleccion: [
+          AccionFlotante(
+            icono: Icons.visibility_outlined,
+            etiqueta: 'Ver nutrientes',
+            color: EqColors.primary,
+            insignia: _seleccionados.length,
+            onTap: _verNutrientes,
+          ),
           AccionFlotante(
             icono: Icons.drive_file_move_outline,
             etiqueta: 'Mover',
@@ -659,7 +716,7 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
             const SizedBox(height: EqSpace.md),
           ],
           _Resumen(
-            objetivos: ingesta.objetivos,
+            satisfaccion: _analisis?.satisfaccion,
             onVerMas: _ocupado || ingesta.totalItems == 0 ? null : _verAnalisis,
           ),
           for (final comida in ingesta.comidas) ...[
@@ -681,21 +738,22 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
 }
 
 class _Resumen extends StatelessWidget {
-  const _Resumen({required this.objetivos, required this.onVerMas});
+  const _Resumen({required this.satisfaccion, required this.onVerMas});
 
-  final ObjetivosDia objetivos;
+  /// null mientras carga o si no se pudo calcular.
+  final double? satisfaccion;
   final VoidCallback? onVerMas;
 
   @override
   Widget build(BuildContext context) {
-    final o = objetivos;
+    final s = satisfaccion;
     return EqHero(
       onTap: onVerMas,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'CALORÍAS DEL DÍA',
+            'SATISFACCIÓN GENERAL',
             style: EqText.caption.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: EqSpace.xs),
@@ -703,15 +761,8 @@ class _Resumen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${o.kcal.round()}',
+                s == null ? '—' : '${fmtNum(s, 1)} %',
                 style: EqText.h1.copyWith(color: Colors.white),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4, left: 6),
-                child: Text(
-                  o.tieneObjetivo ? 'de ${o.objKcal.round()} kcal' : 'kcal',
-                  style: EqText.body.copyWith(color: EqColors.primarySoft),
-                ),
               ),
               const Spacer(),
               TextButton(
@@ -722,56 +773,23 @@ class _Resumen extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Análisis'),
+                    Text('Ver más'),
                     Icon(Icons.chevron_right, size: 18),
                   ],
                 ),
               ),
             ],
           ),
-          if (o.tieneObjetivo) ...[
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: o.avance.clamp(0, 1).toDouble(),
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(3),
-              color: EqColors.primarySoft,
-              backgroundColor: Colors.white24,
-            ),
-          ],
-          const SizedBox(height: EqSpace.sm),
-          Text(
-            [
-              _macro('Prot.', o.proteinas, o.objProteinas, o.tieneObjetivo),
-              _macro(
-                'Carb.',
-                o.carbohidratos,
-                o.objCarbohidratos,
-                o.tieneObjetivo,
-              ),
-              _macro('Grasa', o.grasa, o.objGrasa, o.tieneObjetivo),
-            ].join('  ·  '),
-            style: EqText.bodySm.copyWith(color: Colors.white70),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: s == null ? null : (s / 100).clamp(0, 1).toDouble(),
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(3),
+            color: EqColors.primarySoft,
+            backgroundColor: Colors.white24,
           ),
-          if (!o.tieneObjetivo)
-            Text(
-              'Sin objetivo: guarda tu evaluación nutricional para comparar.',
-              style: EqText.caption.copyWith(
-                color: Colors.white60,
-                letterSpacing: 0,
-              ),
-            ),
         ],
       ),
     );
   }
-
-  static String _macro(
-    String nombre,
-    double valor,
-    double objetivo,
-    bool conObjetivo,
-  ) => conObjetivo
-      ? '$nombre ${valor.round()}/${objetivo.round()} g'
-      : '$nombre ${valor.round()} g';
 }
