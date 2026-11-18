@@ -69,7 +69,7 @@ class ConBotonCrear extends StatelessWidget {
       children: [
         Positioned.fill(child: child),
         Positioned(
-          top: EqSpace.md,
+          top: MediaQuery.paddingOf(context).top,
           right: EqSpace.md,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -349,7 +349,7 @@ class _RielSeleccionState extends State<_RielSeleccion>
                   _Fila(
                     progreso: _tramo(0, 0.35),
                     etiqueta: compacto
-                        ? _BotonOpciones(_abrirOpciones)
+                        ? _BotonOpciones(_cantidadMostrada, _abrirOpciones)
                         : _Conteo(_cantidadMostrada),
                     // La X, con la misma forma que los demás botones del riel.
                     marca: widget.onCancelar == null
@@ -453,13 +453,14 @@ class _Conteo extends StatelessWidget {
 
 /// Píldora que reemplaza al conteo con letra grande; abre [_DialogoSeleccion].
 class _BotonOpciones extends StatelessWidget {
-  const _BotonOpciones(this.onTap);
+  const _BotonOpciones(this.cantidad, this.onTap);
 
+  final int cantidad;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final forma = BorderRadius.circular(999);
+    final forma = BorderRadius.circular(EqRadius.lg);
     return DecoratedBox(
       decoration: BoxDecoration(borderRadius: forma, boxShadow: EqShadow.base),
       child: Material(
@@ -473,15 +474,33 @@ class _BotonOpciones extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Opciones de la selección',
-                  style: EqText.label.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      cantidad == 1
+                          ? '1 seleccionado'
+                          : '$cantidad seleccionados',
+                      style: EqText.caption.copyWith(
+                        color: EqColors.primarySoft,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Opciones de\nla selección',
+                      style: EqText.label.copyWith(
+                        fontSize: 13,
+                        height: 1.2,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 const Icon(Icons.expand_more, size: 18, color: Colors.white),
               ],
             ),
