@@ -18,12 +18,20 @@ enum FichaDatos {
   final String ruta;
 }
 
-Future<void> editarDatos(BuildContext context, FichaDatos ficha) => abrirHoja<void>(context, _HojaDatos(ficha));
+Future<void> editarDatos(BuildContext context, FichaDatos ficha) =>
+    abrirHoja<void>(context, _HojaDatos(ficha));
 
 enum _Tipo { numero, siNo, fecha, sexo, actividad }
 
 class _Campo {
-  const _Campo(this.clave, this.etiqueta, this.tipo, {this.unidad, this.siActivo, this.porDefecto = ''});
+  const _Campo(
+    this.clave,
+    this.etiqueta,
+    this.tipo, {
+    this.unidad,
+    this.siActivo,
+    this.porDefecto = '',
+  });
 
   final String clave;
   final String etiqueta;
@@ -56,50 +64,153 @@ const _formularios = {
     _Seccion('Medidas', [
       _Campo('ndEstatura', 'Estatura (50 – 250)', _Tipo.numero, unidad: 'cm'),
       _Campo('ndPesoKg', 'Peso (2 – 400)', _Tipo.numero, unidad: 'kg'),
-      _Campo(_muneca, 'Circunferencia de muñeca (10 – 25)', _Tipo.numero, unidad: 'cm'),
-      _Campo('nd11200', 'Circunferencia de cintura (desde los 19 años)', _Tipo.numero, unidad: 'cm'),
-      _Campo('nd11210', 'Circunferencia de cadera (desde los 19 años)', _Tipo.numero, unidad: 'cm'),
+      _Campo(
+        _muneca,
+        'Circunferencia de muñeca (10 – 25)',
+        _Tipo.numero,
+        unidad: 'cm',
+      ),
+      _Campo(
+        'nd11200',
+        'Circunferencia de cintura (desde los 19 años)',
+        _Tipo.numero,
+        unidad: 'cm',
+      ),
+      _Campo(
+        'nd11210',
+        'Circunferencia de cadera (desde los 19 años)',
+        _Tipo.numero,
+        unidad: 'cm',
+      ),
     ]),
   ],
   FichaDatos.clinicos: [
     _Seccion('Presión arterial', [
       _Campo('nd10100', '¿Tiene la presión arterial elevada?', _Tipo.siNo),
-      _Campo('nd10101', 'Presión sistólica', _Tipo.numero, unidad: 'mmHg', porDefecto: '120'),
-      _Campo('nd10102', 'Presión diastólica', _Tipo.numero, unidad: 'mmHg', porDefecto: '80'),
+      _Campo(
+        'nd10101',
+        'Presión sistólica',
+        _Tipo.numero,
+        unidad: 'mmHg',
+        porDefecto: '120',
+      ),
+      _Campo(
+        'nd10102',
+        'Presión diastólica',
+        _Tipo.numero,
+        unidad: 'mmHg',
+        porDefecto: '80',
+      ),
     ]),
     _Seccion('Diabetes', [
       _Campo('nd10150', '¿Padece usted de diabetes?', _Tipo.siNo),
       _Campo('nd10160', '¿Utiliza insulina?', _Tipo.siNo, siActivo: 'nd10150'),
-      _Campo('nd10170', '¿Toma antidiabéticos orales?', _Tipo.siNo, siActivo: 'nd10150'),
-      _Campo('nd10180', '¿La diabetes le ha provocado daño renal?', _Tipo.siNo, siActivo: 'nd10150'),
+      _Campo(
+        'nd10170',
+        '¿Toma antidiabéticos orales?',
+        _Tipo.siNo,
+        siActivo: 'nd10150',
+      ),
+      _Campo(
+        'nd10180',
+        '¿La diabetes le ha provocado daño renal?',
+        _Tipo.siNo,
+        siActivo: 'nd10150',
+      ),
     ]),
     _Seccion('Condiciones generales', [
-      _Campo('nd10300', '¿Se le ha diagnosticado insuficiencia renal?', _Tipo.siNo),
+      _Campo(
+        'nd10300',
+        '¿Se le ha diagnosticado insuficiencia renal?',
+        _Tipo.siNo,
+      ),
       _Campo('nd10450', '¿Es usted un/a atleta muy musculoso/a?', _Tipo.siNo),
       _Campo('nd10480', '¿Le han diagnosticado «gota»?', _Tipo.siNo),
-      _Campo('nd10500', '¿Sus padres o hermanos sufrieron infarto antes de los 55 años?', _Tipo.siNo),
-      _Campo('nd10600', '¿Usted ha tenido infarto al corazón o angina de pecho?', _Tipo.siNo),
-      _Campo('nd10700', '¿Ha completado una dieta supervisada de 6 meses?', _Tipo.siNo),
-      _Campo('nd11100', '¿Ingiere bebidas alcohólicas una o más veces por semana?', _Tipo.siNo),
+      _Campo(
+        'nd10500',
+        '¿Sus padres o hermanos sufrieron infarto antes de los 55 años?',
+        _Tipo.siNo,
+      ),
+      _Campo(
+        'nd10600',
+        '¿Usted ha tenido infarto al corazón o angina de pecho?',
+        _Tipo.siNo,
+      ),
+      _Campo(
+        'nd10700',
+        '¿Ha completado una dieta supervisada de 6 meses?',
+        _Tipo.siNo,
+      ),
+      _Campo(
+        'nd11100',
+        '¿Ingiere bebidas alcohólicas una o más veces por semana?',
+        _Tipo.siNo,
+      ),
       _Campo('nd11101', '¿Su médico le ha diagnosticado anemia?', _Tipo.siNo),
-      _Campo('nd11102', '¿Ha sido diagnosticado de cálculos renales de calcio?', _Tipo.siNo),
-      _Campo('nd11103', '¿Ha sido diagnosticado de cálculos renales de ácido úrico?', _Tipo.siNo),
+      _Campo(
+        'nd11102',
+        '¿Ha sido diagnosticado de cálculos renales de calcio?',
+        _Tipo.siNo,
+      ),
+      _Campo(
+        'nd11103',
+        '¿Ha sido diagnosticado de cálculos renales de ácido úrico?',
+        _Tipo.siNo,
+      ),
       _Campo('nd11000', '¿Mantiene exposición frecuente al sol?', _Tipo.siNo),
-      _Campo('nd10900', '¿Alguno de sus padres vivió o vive más de 70 años?', _Tipo.siNo),
+      _Campo(
+        'nd10900',
+        '¿Alguno de sus padres vivió o vive más de 70 años?',
+        _Tipo.siNo,
+      ),
     ]),
     _Seccion('Embarazo y lactancia', soloMujeres: true, [
       _Campo('nd10460', '¿Está usted embarazada?', _Tipo.siNo),
-      _Campo('nd10461', 'Mes de embarazo (0 – 9)', _Tipo.numero, siActivo: 'nd10460', porDefecto: '0'),
+      _Campo(
+        'nd10461',
+        'Mes de embarazo (0 – 9)',
+        _Tipo.numero,
+        siActivo: 'nd10460',
+        porDefecto: '0',
+      ),
       _Campo('nd10470', '¿Está dando de lactar?', _Tipo.siNo),
-      _Campo('nd10471', 'Mes de lactancia', _Tipo.numero, siActivo: 'nd10470', porDefecto: '0'),
+      _Campo(
+        'nd10471',
+        'Mes de lactancia',
+        _Tipo.numero,
+        siActivo: 'nd10470',
+        porDefecto: '0',
+      ),
     ]),
     _Seccion('Riesgo de infarto cardíaco', [
       _Campo('nd10400', '¿Fuma actualmente?', _Tipo.siNo),
-      _Campo('nd10401', 'Cigarrillos al día', _Tipo.numero, siActivo: 'nd10400', porDefecto: '0'),
+      _Campo(
+        'nd10401',
+        'Cigarrillos al día',
+        _Tipo.numero,
+        siActivo: 'nd10400',
+        porDefecto: '0',
+      ),
       _Campo('nd10402', '¿Fumaba en el pasado?', _Tipo.siNo),
-      _Campo('nd10403', 'Cigarrillos que fumaba al día', _Tipo.numero, siActivo: 'nd10402', porDefecto: '0'),
-      _Campo('nd10404', 'Años desde que dejó de fumar', _Tipo.numero, siActivo: 'nd10402', porDefecto: '0'),
-      _Campo('nd10800', '¿Su médico le informó que tiene crecimiento ventricular izquierdo?', _Tipo.siNo),
+      _Campo(
+        'nd10403',
+        'Cigarrillos que fumaba al día',
+        _Tipo.numero,
+        siActivo: 'nd10402',
+        porDefecto: '0',
+      ),
+      _Campo(
+        'nd10404',
+        'Años desde que dejó de fumar',
+        _Tipo.numero,
+        siActivo: 'nd10402',
+        porDefecto: '0',
+      ),
+      _Campo(
+        'nd10800',
+        '¿Su médico le informó que tiene crecimiento ventricular izquierdo?',
+        _Tipo.siNo,
+      ),
     ]),
   ],
   FichaDatos.laboratorio: [
@@ -118,7 +229,7 @@ const _formularios = {
 };
 
 // Valores de ndActividad del formulario web; "Deportista" lleva además el deporte: "Deportista;21".
-const _actividades = {
+const nivelesActividad = {
   'Sedentario': 'Sedentario (poco o nada)',
   'Moderadamente Activo': 'Moderado (3-5 días/semana)',
   'Activo': 'Activo (5-6 días/semana)',
@@ -170,7 +281,10 @@ class _HojaDatosState extends State<_HojaDatos> {
     try {
       final r = await Api.get('datos-paciente/${widget.ficha.ruta}') as Json;
       datos = (r['datos'] as Json?) ?? const {};
-      _deportes = [for (final d in (r['lstDeportes'] as List?) ?? const []) Opcion.desdeJson(d as Json)];
+      _deportes = [
+        for (final d in (r['lstDeportes'] as List?) ?? const [])
+          Opcion.desdeJson(d as Json),
+      ];
       if (r['tieneDatos'] == false) _aviso = 'Todavía no hay datos registrados. Complete el formulario y guárdelo.';
     } on ApiError {
       // GET antropométricos responde 500 cuando el usuario aún no tiene datos.
@@ -180,11 +294,15 @@ class _HojaDatosState extends State<_HojaDatos> {
     setState(() {
       for (final c in _campos) {
         final v = datos[c.clave];
-        final texto = v == null || '$v'.trim().isEmpty ? c.porDefecto : '$v'.trim();
+        final texto = v == null || '$v'.trim().isEmpty
+            ? c.porDefecto
+            : '$v'.trim();
         if (c.tipo == _Tipo.numero) {
           _textos[c.clave] = TextEditingController(text: texto);
         } else {
-          _valores[c.clave] = c.tipo == _Tipo.siNo && texto.isEmpty ? 'NO' : texto;
+          _valores[c.clave] = c.tipo == _Tipo.siNo && texto.isEmpty
+              ? 'NO'
+              : texto;
         }
       }
       _esMujer = datos['sexo'] == 'F' || datos['ndSexo'] == 'Femenino';
@@ -203,7 +321,9 @@ class _HojaDatosState extends State<_HojaDatos> {
     });
     final cuerpo = <String, Object?>{
       for (final c in _campos)
-        c.clave: c.tipo == _Tipo.numero ? _textos[c.clave]!.text.trim().replaceAll(',', '.') : _valores[c.clave],
+        c.clave: c.tipo == _Tipo.numero
+            ? _textos[c.clave]!.text.trim().replaceAll(',', '.')
+            : _valores[c.clave],
       if (widget.ficha != FichaDatos.laboratorio) 'ndlab': _ndlab,
       if (widget.ficha == FichaDatos.antropometricos) 'ndcli': _ndcli,
     };
@@ -212,7 +332,9 @@ class _HojaDatosState extends State<_HojaDatos> {
       if (!mounted) return;
       final mensajero = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      mensajero.showSnackBar(SnackBar(content: Text(Api.ultimoMensaje ?? 'Datos guardados')));
+      mensajero.showSnackBar(
+        SnackBar(content: Text(Api.ultimoMensaje ?? 'Datos guardados')),
+      );
       Cambios.avisar();
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
@@ -238,13 +360,23 @@ class _HojaDatosState extends State<_HojaDatos> {
           : ListView(
               padding: const EdgeInsets.all(EqSpace.lg),
               children: [
-                if (_aviso != null) ...[EqAviso(_aviso!), const SizedBox(height: EqSpace.md)],
+                if (_aviso != null) ...[
+                  EqAviso(_aviso!),
+                  const SizedBox(height: EqSpace.md),
+                ],
                 for (final s in _secciones)
                   if (!s.soloMujeres || _esMujer) ...[
-                    Text(s.titulo.toUpperCase(), style: EqText.caption.copyWith(color: EqColors.primary)),
+                    Text(
+                      s.titulo.toUpperCase(),
+                      style: EqText.caption.copyWith(color: EqColors.primary),
+                    ),
                     const SizedBox(height: EqSpace.sm),
                     for (final c in s.campos)
-                      if (_visible(c)) Padding(padding: const EdgeInsets.only(bottom: 12), child: _control(c)),
+                      if (_visible(c))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _control(c),
+                        ),
                     const SizedBox(height: EqSpace.sm),
                   ],
               ],
@@ -264,7 +396,10 @@ class _HojaDatosState extends State<_HojaDatos> {
       ),
       _Tipo.siNo => SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text(c.etiqueta, style: EqText.bodySm.copyWith(color: EqColors.onSurface)),
+        title: Text(
+          c.etiqueta,
+          style: EqText.bodySm.copyWith(color: EqColors.onSurface),
+        ),
         value: _valores[c.clave] == 'SI',
         onChanged: (v) => setState(() => _valores[c.clave] = v ? 'SI' : 'NO'),
       ),
@@ -273,9 +408,13 @@ class _HojaDatosState extends State<_HojaDatos> {
         child: InkWell(
           onTap: () => _elegirFecha(c.clave),
           child: InputDecorator(
-            decoration: const InputDecoration(suffixIcon: Icon(Icons.calendar_today_outlined)),
+            decoration: const InputDecoration(
+              suffixIcon: Icon(Icons.calendar_today_outlined),
+            ),
             child: Text(
-              (_valores[c.clave] ?? '').isEmpty ? 'dd/mm/aaaa' : fechaVista(_valores[c.clave]!),
+              (_valores[c.clave] ?? '').isEmpty
+                  ? 'dd/mm/aaaa'
+                  : fechaVista(_valores[c.clave]!),
               style: EqText.body,
             ),
           ),
@@ -288,8 +427,11 @@ class _HojaDatosState extends State<_HojaDatos> {
             ButtonSegment(value: 'Masculino', label: Text('Masculino')),
             ButtonSegment(value: 'Femenino', label: Text('Femenino')),
           ],
-          selected: {_valores[c.clave] == 'Femenino' ? 'Femenino' : 'Masculino'},
-          onSelectionChanged: (s) => setState(() => _valores[c.clave] = s.first),
+          selected: {
+            _valores[c.clave] == 'Femenino' ? 'Femenino' : 'Masculino',
+          },
+          onSelectionChanged: (s) =>
+              setState(() => _valores[c.clave] = s.first),
         ),
       ),
       _Tipo.actividad => _Actividad(
@@ -313,7 +455,11 @@ class _HojaDatosState extends State<_HojaDatos> {
 }
 
 class _Actividad extends StatelessWidget {
-  const _Actividad({required this.valor, required this.deportes, required this.onCambio});
+  const _Actividad({
+    required this.valor,
+    required this.deportes,
+    required this.onCambio,
+  });
 
   final String valor;
   final List<Opcion> deportes;
@@ -328,10 +474,13 @@ class _Actividad extends StatelessWidget {
         EqField(
           etiqueta: 'Nivel de actividad',
           child: DropdownButtonFormField<String>(
-            initialValue: _actividades.containsKey(nivel) ? nivel : null,
+            initialValue: nivelesActividad.containsKey(nivel) ? nivel : null,
             hint: const Text('Escoja su nivel de actividad'),
             isExpanded: true,
-            items: [for (final a in _actividades.entries) DropdownMenuItem(value: a.key, child: Text(a.value))],
+            items: [
+              for (final a in nivelesActividad.entries)
+                DropdownMenuItem(value: a.key, child: Text(a.value)),
+            ],
             onChanged: (v) => onCambio(v!),
           ),
         ),
@@ -340,10 +489,15 @@ class _Actividad extends StatelessWidget {
           EqField(
             etiqueta: 'Deporte o disciplina',
             child: DropdownButtonFormField<String>(
-              initialValue: deportes.any((d) => d.valor == deporte) ? deporte : null,
+              initialValue: deportes.any((d) => d.valor == deporte)
+                  ? deporte
+                  : null,
               hint: const Text('Escoja el deporte'),
               isExpanded: true,
-              items: [for (final d in deportes) DropdownMenuItem(value: d.valor, child: Text(d.texto))],
+              items: [
+                for (final d in deportes)
+                  DropdownMenuItem(value: d.valor, child: Text(d.texto)),
+              ],
               onChanged: (v) => onCambio('Deportista;$v'),
             ),
           ),

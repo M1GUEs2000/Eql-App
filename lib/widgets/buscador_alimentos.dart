@@ -78,7 +78,11 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
         if (despensa) 'soloDespensa': true,
       }) as List;
       if (!mounted) return;
-      setState(() => _resultados = [for (final a in lista) AlimentoBusqueda.desdeJson(a as Json)]);
+      setState(
+        () => _resultados = [
+          for (final a in lista) AlimentoBusqueda.desdeJson(a as Json),
+        ],
+      );
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
     } finally {
@@ -99,7 +103,12 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.md, EqSpace.md, 0),
+          padding: const EdgeInsets.fromLTRB(
+            EqSpace.md,
+            EqSpace.md,
+            EqSpace.md,
+            0,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -107,11 +116,17 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
                   controller: _busqueda,
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _buscar(),
-                  decoration: const InputDecoration(hintText: 'Buscar alimentos...', prefixIcon: Icon(Icons.search)),
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar alimentos...',
+                    prefixIcon: Icon(Icons.search),
+                  ),
                 ),
               ),
               const SizedBox(width: EqSpace.sm),
-              FilledButton(onPressed: _cargando ? null : _buscar, child: const Text('Buscar')),
+              FilledButton(
+                onPressed: _cargando ? null : _buscar,
+                child: const Text('Buscar'),
+              ),
             ],
           ),
         ),
@@ -125,12 +140,21 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
             separatorBuilder: (_, _) => const SizedBox(width: EqSpace.sm),
             itemBuilder: (_, i) {
               final p = _Pestana.values[i];
-              return EqChip(texto: p.nombre, activo: p == _pestana, onTap: () => _cambiarPestana(p));
+              return EqChip(
+                texto: p.nombre,
+                activo: p == _pestana,
+                onTap: () => _cambiarPestana(p),
+              );
             },
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.xs, EqSpace.md, 0),
+          padding: const EdgeInsets.fromLTRB(
+            EqSpace.md,
+            EqSpace.xs,
+            EqSpace.md,
+            0,
+          ),
           child: Row(
             children: [
               Text('Ordenar por:', style: EqText.bodySm),
@@ -138,13 +162,22 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
               DropdownButton<String>(
                 value: _orden,
                 underline: const SizedBox.shrink(),
-                style: EqText.bodySm.copyWith(color: EqColors.primary, fontWeight: FontWeight.w600),
-                items: [for (final o in _ordenes.keys) DropdownMenuItem(value: o, child: Text(o))],
+                style: EqText.bodySm.copyWith(
+                  color: EqColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+                items: [
+                  for (final o in _ordenes.keys)
+                    DropdownMenuItem(value: o, child: Text(o)),
+                ],
                 onChanged: (o) => setState(() => _orden = o!),
               ),
               const Spacer(),
               if (_resultados != null)
-                Text('${resultados.length} resultados', style: EqText.caption.copyWith(letterSpacing: 0)),
+                Text(
+                  '${resultados.length} resultados',
+                  style: EqText.caption.copyWith(letterSpacing: 0),
+                ),
             ],
           ),
         ),
@@ -154,23 +187,43 @@ class _BuscadorAlimentosState extends State<BuscadorAlimentos> {
               : _error != null
               ? ErrorCarga(_error!, onReintentar: _buscar)
               : _resultados == null
-              ? Center(child: Text('Escribe un alimento o plato y toca Buscar', style: EqText.bodySm))
+              ? Center(
+                  child: Text(
+                    'Escribe un alimento o plato y toca Buscar',
+                    style: EqText.bodySm,
+                  ),
+                )
               : resultados.isEmpty
-              ? Center(child: Text('No se encontraron alimentos', style: EqText.bodySm))
+              ? Center(
+                  child: Text(
+                    'No se encontraron alimentos',
+                    style: EqText.bodySm,
+                  ),
+                )
               : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.sm, EqSpace.md, EqSpace.lg),
+                  padding: const EdgeInsets.fromLTRB(
+                    EqSpace.md,
+                    EqSpace.sm,
+                    EqSpace.md,
+                    EqSpace.lg,
+                  ),
                   itemCount: resultados.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: EqSpace.sm),
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: EqSpace.sm),
                   itemBuilder: (context, i) {
                     final a = resultados[i];
                     if (seleccionados == null) {
-                      return AlimentoTile(alimento: a, onTap: () => mostrarDetalleAlimento(context, a));
+                      return AlimentoTile(
+                        alimento: a,
+                        onTap: () => mostrarDetalleAlimento(context, a),
+                      );
                     }
                     return AlimentoTile(
                       alimento: a,
                       seleccionado: seleccionados.contains(a),
                       onTap: () => widget.onToggle?.call(a),
-                      onInfo: () => mostrarDetalleAlimento(context, a, conAgregar: false),
+                      onInfo: () =>
+                          mostrarDetalleAlimento(context, a, conAgregar: false),
                     );
                   },
                 ),

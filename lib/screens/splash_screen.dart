@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/sesion.dart';
 import '../theme/eq_tokens.dart';
-import 'login_screen.dart';
+import 'bienvenida_screen.dart';
 import 'shell_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -34,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => conSesion ? const ShellScreen() : const LoginScreen(),
+        builder: (_) => conSesion ? const ShellScreen() : const BienvenidaScreen(),
       ),
     );
   }

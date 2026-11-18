@@ -6,7 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'data/api.dart';
 import 'data/apariencia.dart';
 import 'data/sesion.dart';
-import 'screens/login_screen.dart';
+import 'screens/bienvenida_screen.dart';
 import 'screens/splash_screen.dart';
 import 'theme/eq_theme.dart';
 import 'theme/eq_tokens.dart';
@@ -19,7 +19,7 @@ Future<void> main() async {
   Api.alPerderSesion = () async {
     await Sesion.expirar();
     _navegador.currentState?.pushAndRemoveUntil(
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+      MaterialPageRoute<void>(builder: (_) => const BienvenidaScreen()),
       (_) => false,
     );
   };

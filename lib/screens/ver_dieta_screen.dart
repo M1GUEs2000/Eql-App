@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../data/analisis.dart';
 import '../data/api.dart';
 import '../data/cambios.dart';
+import '../data/cache_dietas.dart';
 import '../data/models.dart';
+import '../data/ultima_dieta.dart';
 import '../theme/eq_tokens.dart';
 import '../widgets/analisis_nutricional.dart';
 import '../widgets/boton_crear.dart';
@@ -15,6 +17,7 @@ import '../widgets/eq_top_bar.dart';
 import '../widgets/fecha_libre.dart';
 import '../widgets/popup_buscar.dart';
 import '../widgets/progreso_ajuste.dart';
+import '../widgets/selector_dieta.dart';
 import '../widgets/hoja_inferior.dart';
 import 'crear_dieta_screen.dart';
 
@@ -35,10 +38,20 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
   /// Análisis del día completo de [_ingesta]; da la satisfacción de la tarjeta
   /// y se reutiliza en "Ver más".
   AnalisisNutricional? _analisis;
+
+  /// Agua, costo e índice glucémico del día (GET ingesta/objetivos); la tarjeta
+  /// muestra "—" mientras llegan.
+  ObjetivosDia? _objetivos;
   String? _error;
   var _cargando = true;
   var _ocupado = false;
   final _seleccionados = <int>{};
+
+  /// Alimentos que tocó la última optimización de la dieta abierta.
+  var _marcas = <int, TipoCambio>{};
+
+  /// Datos para calcular [_marcas] cuando se recargue la dieta optimizada.
+  ({String fecha, Map<int, String> antes, List<Json> cambios})? _porMarcar;
 
   @override
   void initState() {
@@ -59,31 +72,45 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     _cargar(fecha);
   }
 
-  Future<void> _cargar([String? fecha]) async {
+  /// [desdeCache] solo al deslizar: usa la vecina ya pedida. El resto de
+  /// recargas (tras editar u optimizar) piden la fecha fresca al servidor.
+  Future<void> _cargar([String? fecha, bool desdeCache = false]) async {
     setState(() {
       _cargando = true;
       _error = null;
     });
     try {
-      var ingesta = Ingesta.desdeJson(
-        await Api.get('ingesta', {'fecha': fecha}) as Json,
-      );
-      // Sin fecha la API abre la de hoy; si hoy no hay dieta se abre la más reciente.
-      if (fecha == null && ingesta.vacia && ingesta.dietas.isNotEmpty) {
-        ingesta = Ingesta.desdeJson(
-          await Api.get('ingesta', {'fecha': fechaDietaMasReciente(ingesta.dietas)})
-              as Json,
-        );
+      if (fecha != null && !desdeCache) CacheDietas.olvidar(fecha);
+      var ingesta = fecha == null
+          ? Ingesta.desdeJson(await Api.get('ingesta') as Json)
+          : await CacheDietas.ingesta(fecha);
+      // Sin fecha la API abre la de hoy; se abre la última dieta editada
+      // (o, si no hay, la más reciente).
+      if (fecha == null && ingesta.dietas.isNotEmpty) {
+        final elegida = await fechaDietaAMostrar(ingesta.dietas);
+        if (elegida != ingesta.fecha) {
+          CacheDietas.olvidar(elegida);
+          ingesta = await CacheDietas.ingesta(elegida);
+        }
       }
       if (!mounted) return;
       setState(() {
+        if (_porMarcar case final p? when p.fecha == ingesta.fecha) {
+          _marcas = _calcularMarcas(ingesta, p.antes, p.cambios);
+          _porMarcar = null;
+        } else if (_ingesta?.fecha != ingesta.fecha) {
+          _marcas = {};
+        }
         _ingesta = ingesta;
         _seleccionados.removeWhere(
           (id) => !ingesta.comidas.any((c) => c.items.any((i) => i.id == id)),
         );
       });
       Cambios.ingestaActual.value = ingesta;
+      // Guarda esta y pide por adelantado la anterior y la siguiente.
+      CacheDietas.mantener('dietas', ingesta);
       _cargarAnalisis(ingesta);
+      _cargarObjetivos(ingesta);
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
     } finally {
@@ -96,15 +123,27 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     setState(() => _analisis = null);
     if (ingesta.vacia || ingesta.totalItems == 0) return;
     try {
-      final datos = await Api.get('analisis', {
-        'fecha': ingesta.fecha,
-        'tipo': 'DIA-COMPLETO',
-      }) as Json;
+      final analisis = await CacheDietas.analisis(ingesta);
       if (mounted && identical(_ingesta, ingesta)) {
-        setState(() => _analisis = AnalisisNutricional.desdeJson(datos));
+        setState(() => _analisis = analisis);
       }
     } on ApiError {
       // Sin análisis la tarjeta muestra "—"; "Ver más" lo vuelve a intentar.
+    }
+  }
+
+  /// Pide agua, costo e índice glucémico para la tarjeta; si falla muestra "—".
+  Future<void> _cargarObjetivos(Ingesta ingesta) async {
+    setState(() => _objetivos = null);
+    if (ingesta.vacia || ingesta.totalItems == 0) return;
+    try {
+      final datos =
+          await Api.get('ingesta/objetivos', {'fecha': ingesta.fecha}) as Json;
+      if (mounted && identical(_ingesta, ingesta)) {
+        setState(() => _objetivos = ObjetivosDia.desdeJson(datos));
+      }
+    } on ApiError {
+      // Sin esto la tarjeta muestra "—".
     }
   }
 
@@ -188,8 +227,9 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     await _cargar(_ingesta?.fecha);
   }
 
-  Future<void> _eliminar() async {
-    final seleccion = _seleccion;
+  Future<void> _eliminar([List<ItemIngesta>? items]) async {
+    final seleccion = items ?? _seleccion;
+    if (seleccion.isEmpty) return;
     final si = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -365,7 +405,9 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
       if (!mounted) return;
       await verAnalisis(
         context,
-        seleccion.length == 1 ? seleccion.first.nombre : '${seleccion.length} alimentos',
+        seleccion.length == 1
+            ? seleccion.first.nombre
+            : '${seleccion.length} alimentos',
         AnalisisNutricional.desdeJson(datos),
         titulo: 'Ver nutrientes',
       );
@@ -384,10 +426,9 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
           _analisis ??
           AnalisisNutricional.desdeJson(
             await Api.get('analisis', {
-                  'fecha': ingesta.fecha,
-                  'tipo': 'DIA-COMPLETO',
-                })
-                as Json,
+              'fecha': ingesta.fecha,
+              'tipo': 'DIA-COMPLETO',
+            }) as Json,
           );
       if (!mounted) return;
       final nombre = ingesta.nombre.isEmpty
@@ -397,7 +438,7 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
         context,
         nombre,
         analisis,
-        objetivos: ingesta.objetivos,
+        objetivos: _objetivos ?? ingesta.objetivos,
       );
     } on ApiError catch (e) {
       if (mounted) mostrarMensaje(context, e.detalle);
@@ -445,7 +486,9 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
             return ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(
-                marcada ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                marcada
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
                 color: marcada ? EqColors.acento : EqColors.textFaint,
               ),
               title: Text(titulo),
@@ -516,7 +559,50 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
 
   /// Ajusta la dieta y aplica los cambios sobre ella misma.
   /// Devuelve null si se canceló o no hubo nada que cambiar.
+  /// Compara la dieta antes y después de optimizar. Un id que ya existía con
+  /// otro alimento es un intercambio; un id nuevo es intercambio si el ajuste
+  /// reporta un INTERCAMBIO con ese alimento, si no es nuevo. Los que solo
+  /// cambiaron de cantidad no se marcan.
+  Map<int, TipoCambio> _calcularMarcas(
+    Ingesta despues,
+    Map<int, String> antes,
+    List<Json> cambios,
+  ) {
+    final intercambiados = {
+      for (final c in cambios)
+        if ((c['tipo'] as String? ?? '').toUpperCase() == 'INTERCAMBIO')
+          c['codPlatoAlimento'] as String? ?? '',
+    };
+    return {
+      for (final comida in despues.comidas)
+        for (final item in comida.items)
+          if (!antes.containsKey(item.id))
+            item.id: intercambiados.contains(item.codigo)
+                ? TipoCambio.intercambio
+                : TipoCambio.nuevo
+          else if (antes[item.id] != item.codigo)
+            item.id: TipoCambio.intercambio,
+    };
+  }
+
+  /// Análisis de [fecha] ya con los cambios aplicados; null si no se pudo traer
+  /// (el diálogo de optimización se cierra entonces sin animar el resultado).
+  Future<AnalisisNutricional?> _analisisFinal(String fecha) async {
+    try {
+      return AnalisisNutricional.desdeJson(
+        await Api.get('analisis', {'fecha': fecha, 'tipo': 'DIA-COMPLETO'})
+            as Json,
+      );
+    } on ApiError {
+      return null;
+    }
+  }
+
   Future<Json?> _optimizarAqui(String fecha, bool intercambio) async {
+    final antes = {
+      for (final c in _ingesta!.comidas)
+        for (final i in c.items) i.id: i.codigo,
+    };
     await Api.post('ajuste/automatico', {
       'fecha': fecha,
       'permitirIntercambio': intercambio,
@@ -527,13 +613,34 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
       context,
       tipo: TipoAjuste.automatico,
       fecha: fecha,
+      satisfaccionInicial: _analisis?.satisfaccion,
+      nutrientesIniciales: _analisis?.nutrientes,
+      // Dentro del mismo diálogo: aplica los cambios y trae el análisis final.
+      alCompletar: (resultado) async {
+        // El ajuste deja los cambios pendientes: la dieta solo cambia al aplicarlos.
+        final pendientes =
+            (resultado['cantidadCambiosPendientes'] as num?) ?? 0;
+        if (pendientes <= 0) return null;
+        await Api.post('ajuste/guiado', {
+          'fecha': fecha,
+          'decision': 'APLICAR_CAMBIOS',
+        });
+        _porMarcar = (
+          fecha: fecha,
+          antes: antes,
+          cambios: [
+            for (final c in resultado['cambiosAplicados'] as List? ?? const [])
+              c as Json,
+          ],
+        );
+        return _analisisFinal(fecha);
+      },
     );
     if (!mounted) return null;
     if (resultado == null) {
       mostrarMensaje(context, 'Optimización cancelada');
       return null;
     }
-    // El ajuste deja los cambios pendientes: la dieta solo cambia al aplicarlos.
     final pendientes = (resultado['cantidadCambiosPendientes'] as num?) ?? 0;
     if (pendientes <= 0) {
       mostrarMensaje(
@@ -542,15 +649,6 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
             'Tu dieta ya está lo más cerca posible de tus objetivos.',
       );
       return null;
-    }
-    setState(() => _ocupado = true);
-    try {
-      await Api.post('ajuste/guiado', {
-        'fecha': fecha,
-        'decision': 'APLICAR_CAMBIOS',
-      });
-    } finally {
-      if (mounted) setState(() => _ocupado = false);
     }
     return resultado;
   }
@@ -563,7 +661,9 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
     bool intercambio,
   ) async {
     final ingesta = _ingesta!;
-    final base = ingesta.nombre.trim().isEmpty ? 'Dieta' : ingesta.nombre.trim();
+    final base = ingesta.nombre.trim().isEmpty
+        ? 'Dieta'
+        : ingesta.nombre.trim();
     final nombre = '$base ajustada';
     await Api.post('ajuste/dieta-ajustada', {
       'fechaOriginal': fecha,
@@ -572,7 +672,14 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
       'permitirIntercambio': intercambio,
     });
     if (!mounted) return null;
-    return esperarAjuste(context, tipo: TipoAjuste.dietaAjustada, fecha: fecha);
+    return esperarAjuste(
+      context,
+      tipo: TipoAjuste.dietaAjustada,
+      fecha: fecha,
+      satisfaccionInicial: _analisis?.satisfaccion,
+      nutrientesIniciales: _analisis?.nutrientes,
+      alCompletar: (_) => _analisisFinal(nueva),
+    );
   }
 
   Future<void> _optimizar() async {
@@ -606,26 +713,29 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
         ingesta.bloqueo == null &&
         !_ocupado;
     return Scaffold(
-      appBar: const EqTopBar(),
-      body: ConBotonCrear(
-        encima: editable && ingesta.totalItems > 0
-            ? BotonOptimizar(onPressed: _optimizar)
-            : null,
+      extendBodyBehindAppBar: true,
+      appBar: EqTopBar(
+        flotante: true,
         acciones: [
-          AccionMenu(
+          if (editable && ingesta.totalItems > 0)
+            BotonOptimizar(onPressed: _optimizar),
+          BotonCircular(
             icono: Icons.add,
-            etiqueta: 'Crear dieta',
-            onTap: () => abrirHoja<void>(context, const CrearDietaScreen()),
+            tooltip: 'Crear nueva dieta',
+            onPressed: () => abrirHoja<void>(context, const CrearDietaScreen()),
           ),
-          AccionMenu(
+          BotonCircular(
             icono: Icons.delete_outline,
-            etiqueta: 'Eliminar dieta',
+            tooltip: 'Eliminar dieta',
+            relleno: false,
             color: EqColors.error,
-            habilitada: editable,
-            onTap: _eliminarDieta,
+            onPressed: editable ? _eliminarDieta : null,
           ),
         ],
+      ),
+      body: ConBotonCrear(
         seleccionados: editable ? _seleccionados.length : 0,
+        onCancelarSeleccion: () => setState(_seleccionados.clear),
         accionesSeleccion: [
           AccionFlotante(
             icono: Icons.visibility_outlined,
@@ -634,6 +744,14 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
             insignia: _seleccionados.length,
             onTap: _verNutrientes,
           ),
+          // Editar es de a un alimento: solo aparece con uno seleccionado.
+          if (_seleccionados.length == 1)
+            AccionFlotante(
+              icono: Icons.edit_outlined,
+              etiqueta: 'Editar',
+              color: EqColors.primary,
+              onTap: () => _editar(_seleccion.single),
+            ),
           AccionFlotante(
             icono: Icons.drive_file_move_outline,
             etiqueta: 'Mover',
@@ -648,7 +766,10 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
           ),
         ],
         child: RefreshIndicator(
-          onRefresh: () => _cargar(ingesta?.fecha),
+          onRefresh: () {
+            CacheDietas.limpiar();
+            return _cargar(ingesta?.fecha);
+          },
           child: _contenido(editable),
         ),
       ),
@@ -658,48 +779,31 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
   Widget _contenido(bool editable) {
     final ingesta = _ingesta;
     if (_cargando && ingesta == null) return const Cargando();
-    if (_error != null && ingesta == null)
+    if (_error != null && ingesta == null) {
       return ErrorCarga(_error!, onReintentar: _cargar);
+    }
     if (ingesta == null) return const SizedBox.shrink();
     final dietas = ingesta.dietas;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         EqSpace.md,
-        EqSpace.lg,
+        EqSpace.lg + espacioBarra(context),
         EqSpace.md,
         EqSpace.xl,
       ),
       children: [
-        Padding(
-          padding: const EdgeInsets.only(right: 140),
-          child: Text('Ingesta diaria', style: EqText.h2),
-        ),
+        Text('Ingesta diaria', style: EqText.h2),
         const SizedBox(height: EqSpace.md),
         if (_cargando || _ocupado) const LinearProgressIndicator(),
         if (dietas.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(right: 72),
-            child: EqField(
-              etiqueta: 'Dieta',
-              child: DropdownButtonFormField<String>(
-                key: ValueKey(ingesta.fecha),
-                initialValue: dietas.any((d) => d.fecha == ingesta.fecha)
-                    ? ingesta.fecha
-                    : null,
-                hint: Text('${fechaVista(ingesta.fecha)} · sin dieta'),
-                isExpanded: true,
-                items: [
-                  for (final d in dietas)
-                    DropdownMenuItem(
-                      value: d.fecha,
-                      child: Text(d.etiqueta, overflow: TextOverflow.ellipsis),
-                    ),
-                ],
-                onChanged: (f) {
-                  _seleccionados.clear();
-                  _cargar(f);
-                },
-              ),
+          EqField(
+            etiqueta: 'Dieta',
+            child: CampoDieta(
+              ingesta: ingesta,
+              onElegir: (f) {
+                _seleccionados.clear();
+                _cargar(f);
+              },
             ),
           ),
         const SizedBox(height: EqSpace.md),
@@ -717,6 +821,10 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
           ],
           _Resumen(
             satisfaccion: _analisis?.satisfaccion,
+            objetivos: _objetivos,
+            calorias: _analisis?.nutrientes
+                .where((n) => n.campo == 'KCALS')
+                .firstOrNull,
             onVerMas: _ocupado || ingesta.totalItems == 0 ? null : _verAnalisis,
           ),
           for (final comida in ingesta.comidas) ...[
@@ -726,9 +834,11 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
               seleccionados: _seleccionados,
               editable: editable,
               onToggle: _toggle,
+              onEditar: _editar,
+              onEliminar: (item) => _eliminar([item]),
               onToggleComida: () => _toggleComida(comida),
               onAgregar: () => _agregar(comida),
-              onEditar: _editar,
+              marcas: _marcas,
             ),
           ],
         ],
@@ -738,58 +848,244 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
 }
 
 class _Resumen extends StatelessWidget {
-  const _Resumen({required this.satisfaccion, required this.onVerMas});
+  const _Resumen({
+    required this.satisfaccion,
+    required this.objetivos,
+    required this.calorias,
+    required this.onVerMas,
+  });
 
   /// null mientras carga o si no se pudo calcular.
   final double? satisfaccion;
+
+  /// Agua, costo e índice glucémico del día; null mientras cargan.
+  final ObjetivosDia? objetivos;
+
+  /// Fila KCALS del análisis (objetivo y cantidad); null mientras carga.
+  final Nutriente? calorias;
   final VoidCallback? onVerMas;
 
   @override
   Widget build(BuildContext context) {
-    final s = satisfaccion;
+    final o = objetivos;
     return EqHero(
       onTap: onVerMas,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'SATISFACCIÓN GENERAL',
-            style: EqText.caption.copyWith(color: Colors.white70),
-          ),
-          const SizedBox(height: EqSpace.xs),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                s == null ? '—' : '${fmtNum(s, 1)} %',
-                style: EqText.h1.copyWith(color: Colors.white),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: onVerMas,
-                style: TextButton.styleFrom(
-                  foregroundColor: EqColors.primarySoft,
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+              AnilloSatisfaccion(satisfaccion),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
                   children: [
-                    Text('Ver más'),
-                    Icon(Icons.chevron_right, size: 18),
+                    _DatoDia(
+                      'Agua',
+                      o == null || o.agua <= 0 ? '—' : '${o.agua.round()} ml',
+                      fraccion: o == null ? 0 : o.agua / 2000,
+                      color: o == null || o.agua <= 0
+                          ? null
+                          : _colorAgua(o.agua),
+                    ),
+                    const SizedBox(height: 12),
+                    _DatoDia(
+                      'Costo',
+                      o == null || o.costo <= 0
+                          ? '—'
+                          : '\$${o.costo.toStringAsFixed(2)}',
+                      fraccion: o == null ? 0 : o.costo / 10,
+                      color: o == null || o.costo <= 0
+                          ? null
+                          : _colorCosto(o.costo),
+                    ),
+                    const SizedBox(height: 12),
+                    _DatoDia(
+                      'Índice glucémico',
+                      o == null || o.indiceGlucemico <= 0
+                          ? '—'
+                          : fmtNum(o.indiceGlucemico),
+                      fraccion: o == null ? 0 : o.indiceGlucemico / 100,
+                      color: o == null || o.indiceGlucemico <= 0
+                          ? null
+                          : _colorIg(o.indiceGlucemico),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: s == null ? null : (s / 100).clamp(0, 1).toDouble(),
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(3),
-            color: EqColors.primarySoft,
-            backgroundColor: Colors.white24,
+          if (calorias case final k?) ...[
+            const SizedBox(height: EqSpace.md),
+            const Divider(height: 1, color: Colors.white24),
+            const SizedBox(height: EqSpace.md),
+            _CaloriasResumen(k),
+          ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: onVerMas,
+              style: TextButton.styleFrom(
+                foregroundColor: EqColors.primarySoft,
+                visualDensity: VisualDensity.compact,
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Ver análisis'),
+                  Icon(Icons.chevron_right, size: 18),
+                ],
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Un dato del día (agua, costo, índice glucémico) sobre el fondo oscuro del resumen.
+/// Colores de las barras, con las mismas pautas de la web: agua rojo <1000 ml,
+/// naranja <1500, amarillo <2000, verde desde 2000; costo verde ≤6, amarillo ≤10,
+/// rojo por encima; índice glucémico (menos es mejor) verde ≤55, amarillo ≤69,
+/// rojo desde 70.
+const _verde = Color(0xFF8FD6A4);
+const _amarillo = Color(0xFFF5D76E);
+const _naranja = Color(0xFFFFB066);
+const _rojo = Color(0xFFFFA39B);
+
+Color _colorAgua(double ml) => ml >= 2000
+    ? _verde
+    : ml >= 1500
+    ? _amarillo
+    : ml >= 1000
+    ? _naranja
+    : _rojo;
+
+Color _colorCosto(double c) => c > 10
+    ? _rojo
+    : c > 6
+    ? _amarillo
+    : _verde;
+
+Color _colorIg(double ig) => ig <= 55
+    ? _verde
+    : ig <= 69
+    ? _amarillo
+    : _rojo;
+
+class _DatoDia extends StatelessWidget {
+  const _DatoDia(this.nombre, this.valor, {this.fraccion = 0, this.color});
+
+  final String nombre;
+  final String valor;
+
+  /// Largo de la barra (0..1).
+  final double fraccion;
+
+  /// null deja la barra vacía y gris (sin dato).
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                nombre,
+                style: EqText.caption.copyWith(
+                  color: Colors.white70,
+                  letterSpacing: 0,
+                ),
+              ),
+            ),
+            Text(
+              valor,
+              style: EqText.label.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LinearProgressIndicator(
+            value: fraccion.clamp(0.0, 1.0),
+            minHeight: 4,
+            color: color ?? Colors.white24,
+            backgroundColor: Colors.white24,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Calorías de la dieta contra el objetivo, sobre el fondo oscuro del resumen.
+class _CaloriasResumen extends StatelessWidget {
+  const _CaloriasResumen(this.n);
+
+  final Nutriente n;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = colorPorcentajeOscuro(n.cuantitativo);
+    final diferencia = (n.objetivo - n.cantidad).round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'CALORÍAS',
+              style: EqText.caption.copyWith(color: Colors.white70),
+            ),
+            const Spacer(),
+            Text(
+              '${fmtNum(n.cuantitativo)} %',
+              style: EqText.label.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: EqSpace.xs),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: '${n.cantidad.round()}'),
+              TextSpan(
+                text: ' / ${n.objetivo.round()} kcal',
+                style: EqText.bodySm.copyWith(color: Colors.white70),
+              ),
+            ],
+          ),
+          style: EqText.h2.copyWith(color: Colors.white, height: 1.1),
+        ),
+        const SizedBox(height: EqSpace.sm),
+        LinearProgressIndicator(
+          value: n.objetivo <= 0
+              ? 0
+              : (n.cantidad / n.objetivo).clamp(0, 1).toDouble(),
+          minHeight: 6,
+          borderRadius: BorderRadius.circular(3),
+          color: color,
+          backgroundColor: Colors.white24,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          diferencia >= 0
+              ? 'Faltan $diferencia kcal para el objetivo'
+              : 'Te pasas por ${-diferencia} kcal del objetivo',
+          style: EqText.bodySm.copyWith(color: Colors.white70),
+        ),
+      ],
     );
   }
 }

@@ -25,10 +25,7 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
   final List<DietaGuardada> _dietas =
       Cambios.ingestaActual.value?.dietas ?? const [];
   var _modo = _Modo.vacia;
-  late var _fecha = primerDiaLibre(
-    _dietas.map((d) => d.fecha),
-    DateTime.now(),
-  );
+  late var _fecha = primerDiaLibre(_dietas.map((d) => d.fecha), DateTime.now());
   String? _origen;
   var _intercambio = true;
   var _guardando = false;
@@ -90,7 +87,7 @@ class _CrearDietaScreenState extends State<CrearDietaScreen> {
       }
       if (!mounted) return;
       final mensajero = ScaffoldMessenger.of(context);
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
       mensajero.showSnackBar(SnackBar(content: Text('Dieta "$nombre" creada')));
       Cambios.avisar(fechaIngesta: fecha);
     } on ApiError catch (e) {

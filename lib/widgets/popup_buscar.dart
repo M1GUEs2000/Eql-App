@@ -5,8 +5,10 @@ import 'buscador_alimentos.dart';
 import 'hoja_inferior.dart';
 
 /// Hoja para elegir varios alimentos y sumarlos a un tiempo de comida.
-Future<List<AlimentoBusqueda>?> mostrarBuscadorParaAgregar(BuildContext context, String bloque) =>
-    abrirHoja<List<AlimentoBusqueda>>(context, _BuscadorParaAgregar(bloque));
+Future<List<AlimentoBusqueda>?> mostrarBuscadorParaAgregar(
+  BuildContext context,
+  String bloque,
+) => abrirHoja<List<AlimentoBusqueda>>(context, _BuscadorParaAgregar(bloque));
 
 class _BuscadorParaAgregar extends StatefulWidget {
   const _BuscadorParaAgregar(this.bloque);
@@ -34,11 +36,16 @@ class _BuscadorParaAgregarState extends State<_BuscadorParaAgregar> {
       pie: SizedBox(
         width: double.infinity,
         child: FilledButton(
-          onPressed: _seleccionados.isEmpty ? null : () => Navigator.of(context).pop(_seleccionados.toList()),
+          onPressed: _seleccionados.isEmpty
+              ? null
+              : () => Navigator.of(context).pop(_seleccionados.toList()),
           child: Text('Agregar (${_seleccionados.length})'),
         ),
       ),
-      child: BuscadorAlimentos(seleccionados: _seleccionados, onToggle: _toggle),
+      child: BuscadorAlimentos(
+        seleccionados: _seleccionados,
+        onToggle: _toggle,
+      ),
     );
   }
 }

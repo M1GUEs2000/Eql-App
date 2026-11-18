@@ -27,7 +27,10 @@ class EqCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final esquinas = BorderRadius.circular(radio);
     return DecoratedBox(
-      decoration: BoxDecoration(borderRadius: esquinas, boxShadow: sombra ? EqShadow.md : null),
+      decoration: BoxDecoration(
+        borderRadius: esquinas,
+        boxShadow: sombra ? EqShadow.md : null,
+      ),
       child: Material(
         color: color ?? EqColors.surface,
         clipBehavior: Clip.antiAlias,
@@ -67,7 +70,12 @@ class EqField extends StatelessWidget {
 
 /// .chip-filter / .chip-filter-active
 class EqChip extends StatelessWidget {
-  const EqChip({super.key, required this.texto, required this.activo, required this.onTap});
+  const EqChip({
+    super.key,
+    required this.texto,
+    required this.activo,
+    required this.onTap,
+  });
 
   final String texto;
   final bool activo;
@@ -89,7 +97,10 @@ class EqChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           child: Text(
             texto.toUpperCase(),
-            style: EqText.caption.copyWith(color: activo ? Colors.white : EqColors.primary, letterSpacing: 0.6),
+            style: EqText.caption.copyWith(
+              color: activo ? Colors.white : EqColors.primary,
+              letterSpacing: 0.6,
+            ),
           ),
         ),
       ),
@@ -115,8 +126,14 @@ class EqEtiqueta extends StatelessWidget {
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: fondo, borderRadius: BorderRadius.circular(EqRadius.sm)),
-      child: Text(texto.toUpperCase(), style: EqText.caption.copyWith(color: color, fontSize: 11)),
+      decoration: BoxDecoration(
+        color: fondo,
+        borderRadius: BorderRadius.circular(EqRadius.sm),
+      ),
+      child: Text(
+        texto.toUpperCase(),
+        style: EqText.caption.copyWith(color: color, fontSize: 11),
+      ),
     );
   }
 }
@@ -134,7 +151,10 @@ class Cargando extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Cargando...',
-            style: EqText.bodySm.copyWith(color: EqColors.primary, fontWeight: FontWeight.w500),
+            style: EqText.bodySm.copyWith(
+              color: EqColors.primary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -175,7 +195,12 @@ class ErrorCarga extends StatelessWidget {
 
 /// Tarjeta para estados vacíos o avisos dentro de una lista.
 class EqAviso extends StatelessWidget {
-  const EqAviso(this.texto, {super.key, this.icono = Icons.info_outline, this.accion});
+  const EqAviso(
+    this.texto, {
+    super.key,
+    this.icono = Icons.info_outline,
+    this.accion,
+  });
 
   final String texto;
   final IconData icono;
@@ -195,7 +220,10 @@ class EqAviso extends StatelessWidget {
               Icon(icono, color: EqColors.primary),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(texto, style: EqText.bodySm.copyWith(color: EqColors.onSurface)),
+                child: Text(
+                  texto,
+                  style: EqText.bodySm.copyWith(color: EqColors.onSurface),
+                ),
               ),
             ],
           ),
@@ -231,7 +259,11 @@ class EqHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final esquinas = BorderRadius.circular(radio);
     return Container(
-      decoration: BoxDecoration(gradient: EqGradients.hero, borderRadius: esquinas, boxShadow: EqShadow.md),
+      decoration: BoxDecoration(
+        gradient: EqGradients.hero,
+        borderRadius: esquinas,
+        boxShadow: EqShadow.md,
+      ),
       child: Material(
         type: MaterialType.transparency,
         borderRadius: esquinas,

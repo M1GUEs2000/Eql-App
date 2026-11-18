@@ -212,13 +212,17 @@ class Ingesta {
     for (final nombre in conItems.keys) {
       if (!nombres.contains(nombre)) nombres.add(nombre);
     }
+    final fecha = j['fecha'] as String? ?? '';
+    final dietas = [for (final f in _lista(j['fechas'])) DietaGuardada(f['fecha'] as String, f['titulo'] as String? ?? '')];
     return Ingesta(
-      fecha: j['fecha'] as String? ?? '',
+      fecha: fecha,
       nombre: (j['nombreDieta'] as String? ?? '').trim(),
-      vacia: j['sinIngesta'] as bool? ?? true,
+      // El servidor marca sinIngesta cuando la dieta no tiene alimentos; una dieta
+      // recién creada y todavía sin alimentos existe, solo que está vacía.
+      vacia: (j['sinIngesta'] as bool? ?? true) && !dietas.any((d) => d.fecha == fecha),
       comidas: [for (final n in nombres) ComidaIngesta(n, conItems[n] ?? [])],
       objetivos: ObjetivosDia.desdeJson(j['objetivos'] as Json?),
-      dietas: [for (final f in _lista(j['fechas'])) DietaGuardada(f['fecha'] as String, f['titulo'] as String? ?? '')],
+      dietas: dietas,
       bloqueo: _motivoBloqueo(j['bloqueo']),
     );
   }

@@ -25,7 +25,15 @@ enum _Modo { plan, actividad }
 /// Hoja "Nuevo cálculo de gasto"; se abre con [abrirHoja]. Aplica un plan
 /// predefinido en una fecha o agrega una actividad al plan de [fecha].
 class CrearGastoScreen extends StatefulWidget {
-  const CrearGastoScreen({super.key, this.fecha, this.planes = const []});
+  const CrearGastoScreen({
+    super.key,
+    this.fecha,
+    this.planes = const [],
+    this.actividad = false,
+  });
+
+  /// Abre directo en "Agregar actividad" (solo si ya hay plan, [fecha]).
+  final bool actividad;
 
   /// Fecha del plan abierto; null si todavía no hay plan.
   final String? fecha;
@@ -36,7 +44,9 @@ class CrearGastoScreen extends StatefulWidget {
 }
 
 class _CrearGastoScreenState extends State<CrearGastoScreen> {
-  late var _modo = _Modo.plan;
+  late var _modo = widget.actividad && widget.fecha != null
+      ? _Modo.actividad
+      : _Modo.plan;
   late var _planes = widget.planes;
   var _fecha = DateTime.now();
   String? _codigoPlan;

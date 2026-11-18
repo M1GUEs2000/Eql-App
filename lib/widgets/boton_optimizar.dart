@@ -15,17 +15,27 @@ class BotonOptimizar extends StatefulWidget {
   State<BotonOptimizar> createState() => _BotonOptimizarState();
 }
 
-class _BotonOptimizarState extends State<BotonOptimizar> with TickerProviderStateMixin {
+class _BotonOptimizarState extends State<BotonOptimizar>
+    with TickerProviderStateMixin {
   static const _vueltas = 3;
 
-  late final _giro = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))
-    ..addStatusListener((estado) {
-      if (estado == AnimationStatus.completed) _pulso.repeat(reverse: true);
-    });
-  late final _angulo = CurvedAnimation(parent: _giro, curve: Curves.easeOutCubic);
+  late final _giro =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1400),
+      )..addStatusListener((estado) {
+        if (estado == AnimationStatus.completed) _pulso.repeat(reverse: true);
+      });
+  late final _angulo = CurvedAnimation(
+    parent: _giro,
+    curve: Curves.easeOutCubic,
+  );
 
   // Latido tras las vueltas: el halo verde crece y el botón se agranda un poco.
-  late final _pulso = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+  late final _pulso = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
   late final _latido = CurvedAnimation(parent: _pulso, curve: Curves.easeInOut);
 
   var _visible = false;
@@ -69,14 +79,6 @@ class _BotonOptimizarState extends State<BotonOptimizar> with TickerProviderStat
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             borderRadius: forma,
-            boxShadow: [
-              ...EqShadow.md,
-              BoxShadow(
-                color: EqColors.primaryLight.withValues(alpha: 0.55 * _latido.value),
-                blurRadius: 6 + 14 * _latido.value,
-                spreadRadius: 1 + 3 * _latido.value,
-              ),
-            ],
             gradient: SweepGradient(
               colors: [
                 EqColors.primaryDark,
@@ -85,7 +87,9 @@ class _BotonOptimizarState extends State<BotonOptimizar> with TickerProviderStat
                 EqColors.primaryLight,
                 EqColors.primaryDark,
               ],
-              transform: GradientRotation(_angulo.value * _vueltas * 2 * math.pi),
+              transform: GradientRotation(
+                _angulo.value * _vueltas * 2 * math.pi,
+              ),
             ),
           ),
           child: child,
@@ -101,7 +105,8 @@ class _BotonOptimizarState extends State<BotonOptimizar> with TickerProviderStat
             widget.onPressed();
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            // Alto total ~34 px, igual que los círculos de la navbar.
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -109,7 +114,10 @@ class _BotonOptimizarState extends State<BotonOptimizar> with TickerProviderStat
                 const SizedBox(width: 6),
                 Text(
                   'Optimizar',
-                  style: EqText.label.copyWith(color: EqColors.primary, fontWeight: FontWeight.w600),
+                  style: EqText.label.copyWith(
+                    color: EqColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),

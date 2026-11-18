@@ -379,7 +379,10 @@ class _Cuenta extends StatelessWidget {
                   style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
                 ),
                 if (perfil != null)
-                  Text('${perfil.usuario} · ${perfil.rol}', style: EqText.bodySm),
+                  Text(
+                    '${perfil.usuario} · ${perfil.rol}',
+                    style: EqText.bodySm,
+                  ),
               ],
             ),
           ),

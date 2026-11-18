@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'cache_dietas.dart';
+import 'ultima_dieta.dart';
+
 /// Error de la API: código del documento (DATOS_INVALIDOS, LIMITE_PLAN...) y su mensaje.
 class ApiError implements Exception {
   const ApiError(this.mensaje, {this.codigo, this.errores = const [], this.estado});
@@ -89,6 +92,8 @@ abstract final class Api {
 
     if (json is Map<String, dynamic> && json['ok'] == true) {
       if (metodo != 'GET') ultimoMensaje = json['mensaje'] as String?;
+      if (metodo != 'GET') CacheDietas.limpiar();
+      UltimaDieta.registrar(metodo, ruta, query, cuerpo);
       return json['datos'];
     }
 

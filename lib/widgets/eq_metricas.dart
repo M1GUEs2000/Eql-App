@@ -14,6 +14,7 @@ class EqMetrica extends StatelessWidget {
     this.unidad,
     this.color,
     this.onTap,
+    this.horizontal = false,
   });
 
   final IconData icono;
@@ -22,10 +23,58 @@ class EqMetrica extends StatelessWidget {
   final String? unidad;
   final Color? color;
   final VoidCallback? onTap;
+  final bool horizontal;
 
   @override
   Widget build(BuildContext context) {
     final color = this.color ?? EqColors.primary;
+    final cuadroIcono = Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(EqRadius.base),
+      ),
+      child: Icon(icono, size: 19, color: color),
+    );
+    if (horizontal) {
+      return EqCard(
+        onTap: onTap,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            cuadroIcono,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    titulo.toUpperCase(),
+                    style: EqText.caption.copyWith(fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (unidad != null)
+                    Text(
+                      unidad!,
+                      style: EqText.caption.copyWith(letterSpacing: 0),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              valor,
+              style: EqText.h3.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      );
+    }
     return EqCard(
       onTap: onTap,
       padding: const EdgeInsets.all(14),
@@ -33,15 +82,7 @@ class EqMetrica extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(EqRadius.base),
-            ),
-            child: Icon(icono, size: 19, color: color),
-          ),
+          cuadroIcono,
           const SizedBox(height: 12),
           Text(
             titulo.toUpperCase(),

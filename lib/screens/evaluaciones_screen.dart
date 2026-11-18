@@ -11,6 +11,7 @@ import '../widgets/eq_top_bar.dart';
 import '../widgets/hoja_inferior.dart';
 import 'crear_evaluacion_screen.dart';
 import 'datos_screen.dart';
+import 'objetivos_screen.dart';
 
 /// GET evaluacion y GET objetivos: la evaluación la calcula el servidor con los
 /// datos antropométricos y el plan de gasto calórico.
@@ -103,23 +104,28 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const EqTopBar(),
-      body: ConBotonCrear(
+      extendBodyBehindAppBar: true,
+      appBar: EqTopBar(
+        flotante: true,
         acciones: [
-          AccionMenu(
+          BotonCircular(
             icono: Icons.add,
-            etiqueta: 'Crear evaluación',
-            onTap: () =>
+            tooltip: 'Crear evaluación',
+            onPressed: () =>
                 abrirHoja<void>(context, const CrearEvaluacionScreen()),
           ),
-          AccionMenu(
+          BotonCircular(
             icono: Icons.delete_outline,
-            etiqueta: 'Eliminar evaluación',
+            tooltip: 'Eliminar evaluación',
+            relleno: false,
             color: EqColors.error,
-            habilitada: _fecha != null && _vista?.evaluacion != null,
-            onTap: () => _eliminar(_fecha!),
+            onPressed: _fecha != null && _vista?.evaluacion != null
+                ? () => _eliminar(_fecha!)
+                : null,
           ),
         ],
+      ),
+      body: ConBotonCrear(
         child: RefreshIndicator(
           onRefresh: () => _cargar(_fecha),
           child: _contenido(),
@@ -136,9 +142,9 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen> {
     }
     final e = vista?.evaluacion;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         EqSpace.md,
-        EqSpace.lg,
+        EqSpace.lg + espacioBarra(context),
         EqSpace.md,
         EqSpace.xl,
       ),
@@ -301,18 +307,26 @@ class _EvaluacionesScreenState extends State<EvaluacionesScreen> {
                 ),
               ],
             ),
-          ],
-          if (_objetivo?.estado != 'REFERENCIA') ...[
-            const SizedBox(height: EqSpace.md),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: () => _accion(
-                  () => Api.post('evaluacion/referencia', {'fecha': _fecha}),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => verObjetivos(context, fecha: _fecha),
+                    icon: const Icon(Icons.person_outline),
+                    label: const Text('Objetivos del usuario'),
+                  ),
                 ),
-                icon: const Icon(Icons.push_pin_outlined),
-                label: const Text('Usar como referencia'),
-              ),
+                const SizedBox(width: EqSpace.sm),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        verObjetivos(context, fecha: _fecha, nutricionista: true),
+                    icon: const Icon(Icons.medical_services_outlined),
+                    label: const Text('Del nutricionista'),
+                  ),
+                ),
+              ],
             ),
           ],
         ],

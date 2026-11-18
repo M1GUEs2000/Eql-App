@@ -102,6 +102,9 @@ class Nutriente {
   double get excDef => objetivo - cantidad;
 }
 
+/// Unidad de un campo de nutriente ("PROTS" → "g"); vacío si no se conoce.
+String unidadNutriente(String campo) => _unidades[campo.toUpperCase()] ?? '';
+
 const _unidades = {
   'KCALS': 'kcal',
   'PROTS': 'g',

@@ -7,10 +7,16 @@ import '../theme/eq_tokens.dart';
 import 'eq_basicos.dart';
 import 'hoja_inferior.dart';
 
-/// Ficha del alimento. Con [conAgregar] muestra "Agregar", que abre un diálogo
+/// Ficha del alimento. Con [conAgregar] muestra "Agregar", que abre una hoja
 /// para elegir la dieta y la comida (POST ingesta/alimentos).
-Future<void> mostrarDetalleAlimento(BuildContext context, AlimentoBusqueda alimento, {bool conAgregar = true}) =>
-    abrirHoja<void>(context, _DetalleAlimento(alimento, conAgregar: conAgregar));
+Future<void> mostrarDetalleAlimento(
+  BuildContext context,
+  AlimentoBusqueda alimento, {
+  bool conAgregar = true,
+}) => abrirHoja<void>(
+  context,
+  _DetalleAlimento(alimento, conAgregar: conAgregar),
+);
 
 String _gramos(double g) => '${fmtNum(g, 1)} g';
 
@@ -21,15 +27,19 @@ class _DetalleAlimento extends StatelessWidget {
   final bool conAgregar;
 
   Future<void> _agregar(BuildContext context) async {
-    final destino = await showDialog<_Destino>(
-      context: context,
-      builder: (_) => _DialogoAgregar(alimento),
+    final destino = await abrirHoja<_Destino>(
+      context,
+      _DialogoAgregar(alimento),
     );
     if (destino == null || !context.mounted) return;
     final mensajero = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     mensajero.showSnackBar(
-      SnackBar(content: Text('${alimento.descripcion} agregado a ${destino.comida} (${destino.dieta})')),
+      SnackBar(
+        content: Text(
+          '${alimento.descripcion} agregado a ${destino.comida} (${destino.dieta})',
+        ),
+      ),
     );
   }
 
@@ -39,7 +49,9 @@ class _DetalleAlimento extends StatelessWidget {
     return HojaInferior(
       titulo: a.descripcion,
       subtitulo: '${a.nombreTipo} · valores por porción',
-      pie: conAgregar ? PieFormulario(texto: 'Agregar', onPressed: () => _agregar(context)) : null,
+      pie: conAgregar
+          ? PieFormulario(texto: 'Agregar', onPressed: () => _agregar(context))
+          : null,
       child: ListView(
         padding: const EdgeInsets.all(EqSpace.lg),
         children: [
@@ -53,7 +65,10 @@ class _DetalleAlimento extends StatelessWidget {
                 const SizedBox(width: EqSpace.sm),
                 Text('Energía', style: EqText.label),
                 const Spacer(),
-                Text('${a.kcal.round()} kcal', style: EqText.h3.copyWith(color: EqColors.acento)),
+                Text(
+                  '${a.kcal.round()} kcal',
+                  style: EqText.h3.copyWith(color: EqColors.acento),
+                ),
               ],
             ),
           ),
@@ -137,15 +152,21 @@ class _DialogoAgregarState extends State<_DialogoAgregar> {
 
   Future<void> _cargarUnidades() async {
     try {
-      final lista =
-          await Api.get('ingesta/alimentos/${Uri.encodeComponent(widget.alimento.codigo)}/unidades') as List;
-      if (mounted) setState(() => _unidades = [for (final u in lista) Unidad.desdeJson(u as Json)]);
+      final lista = await Api.get(
+        'ingesta/alimentos/${Uri.encodeComponent(widget.alimento.codigo)}/unidades',
+      ) as List;
+      if (mounted)
+        setState(
+          () =>
+              _unidades = [for (final u in lista) Unidad.desdeJson(u as Json)],
+        );
     } on ApiError {
       // Sin el listado se puede agregar igual en porciones base.
     }
   }
 
-  double? get _valor => double.tryParse(_cantidad.text.trim().replaceAll(',', '.'));
+  double? get _valor =>
+      double.tryParse(_cantidad.text.trim().replaceAll(',', '.'));
 
   /// Arranca en la dieta abierta en "Mis dietas"; si no hay, en la más reciente.
   Future<void> _iniciar() async {
@@ -155,7 +176,9 @@ class _DialogoAgregarState extends State<_DialogoAgregar> {
         ingesta = Ingesta.desdeJson(await Api.get('ingesta') as Json);
         if (ingesta.vacia && ingesta.dietas.isNotEmpty) {
           ingesta = Ingesta.desdeJson(
-            await Api.get('ingesta', {'fecha': fechaDietaMasReciente(ingesta.dietas)}) as Json,
+            await Api.get('ingesta', {
+              'fecha': fechaDietaMasReciente(ingesta.dietas),
+            }) as Json,
           );
         }
       }
@@ -187,7 +210,9 @@ class _DialogoAgregarState extends State<_DialogoAgregar> {
       _error = null;
     });
     try {
-      final ingesta = Ingesta.desdeJson(await Api.get('ingesta', {'fecha': fecha}) as Json);
+      final ingesta = Ingesta.desdeJson(
+        await Api.get('ingesta', {'fecha': fecha}) as Json,
+      );
       if (mounted && _fecha == fecha) setState(() => _usar(ingesta));
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);
@@ -222,7 +247,10 @@ class _DialogoAgregarState extends State<_DialogoAgregar> {
       final nuevo = (datos as Json?)?['ingestaDiaria'] as Json?;
       final id = nuevo?['id'] as int?;
       if (_unidad != null || cantidad != 1) {
-        if (id == null) throw const ApiError('Se agregó con 1 porción; cambia la cantidad desde la dieta.');
+        if (id == null)
+          throw const ApiError(
+            'Se agregó con 1 porción; cambia la cantidad desde la dieta.',
+          );
         await Api.put('ingesta/alimentos/$id', {
           'fecha': ingesta.fecha,
           if (_unidad == null) ...{
@@ -238,14 +266,19 @@ class _DialogoAgregarState extends State<_DialogoAgregar> {
       }
       if (!mounted) return;
       Cambios.avisar(fechaIngesta: ingesta.fecha);
-      final dieta = ingesta.nombre.isEmpty ? fechaVista(ingesta.fecha) : ingesta.nombre;
+      final dieta = ingesta.nombre.isEmpty
+          ? fechaVista(ingesta.fecha)
+          : ingesta.nombre;
       Navigator.of(context).pop<_Destino>((dieta: dieta, comida: comida));
     } on ApiError catch (e) {
       if (!mounted) return;
       if (agregado) {
         // Ya quedó en la dieta: se avisa para no duplicarlo con otro intento.
         Cambios.avisar(fechaIngesta: ingesta.fecha);
-        mostrarMensaje(context, 'Se agregó, pero no se pudo ajustar la cantidad: ${e.detalle}');
+        mostrarMensaje(
+          context,
+          'Se agregó, pero no se pudo ajustar la cantidad: ${e.detalle}',
+        );
         Navigator.of(context).pop();
       } else {
         setState(() => _error = e.detalle);
@@ -258,7 +291,8 @@ class _DialogoAgregarState extends State<_DialogoAgregar> {
   String _equivalencia() {
     final valor = _valor;
     final unidad = _unidades.where((u) => u.nombre == _unidad).firstOrNull;
-    if (valor != null && unidad != null) return 'Equivale a ${fmtNum(valor * unidad.gramos, 1)} g';
+    if (valor != null && unidad != null)
+      return 'Equivale a ${fmtNum(valor * unidad.gramos, 1)} g';
     final a = widget.alimento;
     return valor == null || valor <= 0
         ? 'Ingresa una cantidad mayor a 0'
@@ -270,118 +304,141 @@ class _DialogoAgregarState extends State<_DialogoAgregar> {
     final dietas = _dietas;
     final ingesta = _ingesta;
     final bloqueo = ingesta?.bloqueo;
-    final listo = !_cargando && !_agregando && ingesta != null && bloqueo == null && _comida != null;
-    return AlertDialog(
-      title: const Text('Agregar a una dieta'),
-      content: SizedBox(
-        width: 360,
-        child: dietas == null
-            ? (_error != null ? Text(_error!, style: EqText.bodySm) : const SizedBox(height: 96, child: Cargando()))
-            : dietas.isEmpty
-            ? Text('Aún no tienes dietas. Crea una en "Mis dietas" para agregarle alimentos.', style: EqText.bodySm)
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(widget.alimento.descripcion, style: EqText.label.copyWith(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: EqSpace.md),
-                  EqField(
-                    etiqueta: 'Dieta',
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _fecha,
-                      isExpanded: true,
-                      items: [
-                        for (final d in dietas)
-                          DropdownMenuItem(
-                            value: d.fecha,
-                            child: Text(d.etiqueta, overflow: TextOverflow.ellipsis),
-                          ),
-                      ],
-                      onChanged: _agregando ? null : _elegirDieta,
+    final listo =
+        !_cargando &&
+        !_agregando &&
+        ingesta != null &&
+        bloqueo == null &&
+        _comida != null;
+    return HojaInferior(
+      titulo: 'Agregar a una dieta',
+      subtitulo: widget.alimento.descripcion,
+      pie: dietas == null || dietas.isEmpty
+          ? null
+          : PieFormulario(
+              texto: _agregando ? 'Agregando…' : 'Agregar',
+              onPressed: listo ? _agregar : null,
+              error: _error,
+            ),
+      child: ListView(
+        padding: const EdgeInsets.all(EqSpace.lg),
+        children: [
+          if (dietas == null)
+            _error != null
+                ? Text(_error!, style: EqText.bodySm)
+                : const SizedBox(height: 96, child: Cargando())
+          else if (dietas.isEmpty)
+            Text(
+              'Aún no tienes dietas. Crea una en "Mis dietas" para agregarle alimentos.',
+              style: EqText.bodySm,
+            )
+          else ...[
+            EqField(
+              etiqueta: 'Dieta',
+              child: DropdownButtonFormField<String>(
+                initialValue: _fecha,
+                isExpanded: true,
+                items: [
+                  for (final d in dietas)
+                    DropdownMenuItem(
+                      value: d.fecha,
+                      child: Text(d.etiqueta, overflow: TextOverflow.ellipsis),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  EqField(
-                    etiqueta: 'Comida',
-                    child: DropdownButtonFormField<String>(
-                      key: ValueKey(_fecha),
-                      initialValue: _comida,
-                      isExpanded: true,
-                      items: [
-                        for (final c in ingesta?.comidas ?? const <ComidaIngesta>[])
-                          DropdownMenuItem(value: c.nombre, child: Text(c.nombre)),
-                      ],
-                      onChanged: _cargando || _agregando ? null : (c) => setState(() => _comida = c),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: EqField(
-                          etiqueta: 'Cantidad',
-                          child: TextField(
-                            controller: _cantidad,
-                            enabled: !_agregando,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: EqField(
-                          etiqueta: 'Unidad',
-                          child: DropdownButtonFormField<String?>(
-                            initialValue: _unidad,
-                            isExpanded: true,
-                            items: [
-                              const DropdownMenuItem<String?>(value: null, child: Text('Porción')),
-                              for (final u in _unidades)
-                                DropdownMenuItem<String?>(
-                                  value: u.nombre,
-                                  child: Text(u.nombre, overflow: TextOverflow.ellipsis),
-                                ),
-                            ],
-                            onChanged: _agregando ? null : (u) => setState(() => _unidad = u),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: EqSpace.sm),
-                  if (bloqueo != null)
-                    Text(bloqueo, style: EqText.bodySm.copyWith(color: EqColors.errorText))
-                  else
-                    Text(
-                      _equivalencia(),
-                      style: EqText.caption.copyWith(letterSpacing: 0, color: EqColors.textFaint),
-                    ),
-                  if (_error != null) ...[
-                    const SizedBox(height: EqSpace.sm),
-                    Text(_error!, style: EqText.bodySm.copyWith(color: EqColors.errorText)),
-                  ],
                 ],
+                onChanged: _agregando ? null : _elegirDieta,
               ),
+            ),
+            const SizedBox(height: EqSpace.md),
+            EqField(
+              etiqueta: 'Comida',
+              child: DropdownButtonFormField<String>(
+                key: ValueKey(_fecha),
+                initialValue: _comida,
+                isExpanded: true,
+                items: [
+                  for (final c in ingesta?.comidas ?? const <ComidaIngesta>[])
+                    DropdownMenuItem(value: c.nombre, child: Text(c.nombre)),
+                ],
+                onChanged: _cargando || _agregando
+                    ? null
+                    : (c) => setState(() => _comida = c),
+              ),
+            ),
+            const SizedBox(height: EqSpace.md),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: EqField(
+                    etiqueta: 'Cantidad',
+                    child: TextField(
+                      controller: _cantidad,
+                      enabled: !_agregando,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: EqField(
+                    etiqueta: 'Unidad',
+                    child: DropdownButtonFormField<String?>(
+                      initialValue: _unidad,
+                      isExpanded: true,
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Porción'),
+                        ),
+                        for (final u in _unidades)
+                          DropdownMenuItem<String?>(
+                            value: u.nombre,
+                            child: Text(
+                              u.nombre,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: _agregando
+                          ? null
+                          : (u) => setState(() => _unidad = u),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: EqSpace.sm),
+            if (bloqueo != null)
+              Text(
+                bloqueo,
+                style: EqText.bodySm.copyWith(color: EqColors.errorText),
+              )
+            else
+              Text(
+                _equivalencia(),
+                style: EqText.caption.copyWith(
+                  letterSpacing: 0,
+                  color: EqColors.textFaint,
+                ),
+              ),
+          ],
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _agregando ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: listo ? _agregar : null,
-          child: Text(_agregando ? 'Agregando…' : 'Agregar'),
-        ),
-      ],
     );
   }
 }
 
 class _Macro extends StatelessWidget {
-  const _Macro({required this.icono, required this.nombre, required this.valor, required this.color});
+  const _Macro({
+    required this.icono,
+    required this.nombre,
+    required this.valor,
+    required this.color,
+  });
 
   final IconData icono;
   final String nombre;
@@ -399,7 +456,12 @@ class _Macro extends StatelessWidget {
         children: [
           Icon(icono, color: color),
           const SizedBox(height: EqSpace.sm),
-          Text(nombre, style: EqText.bodySm, maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            nombre,
+            style: EqText.bodySm,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           Text(valor, style: EqText.h4.copyWith(fontWeight: FontWeight.w700)),
         ],
       ),

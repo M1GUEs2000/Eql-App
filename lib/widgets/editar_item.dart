@@ -27,7 +27,9 @@ class _EditarItem extends StatefulWidget {
 }
 
 class _EditarItemState extends State<_EditarItem> {
-  late final _cantidad = TextEditingController(text: fmtNum(widget.item.cantidad));
+  late final _cantidad = TextEditingController(
+    text: fmtNum(widget.item.cantidad),
+  );
   late var _unidad = widget.item.unidad;
   var _unidades = <Unidad>[];
   var _guardando = false;
@@ -47,14 +49,21 @@ class _EditarItemState extends State<_EditarItem> {
 
   Future<void> _cargarUnidades() async {
     try {
-      final lista = await Api.get('ingesta/alimentos/${Uri.encodeComponent(widget.item.codigo)}/unidades') as List;
-      if (mounted) setState(() => _unidades = [for (final u in lista) Unidad.desdeJson(u as Json)]);
+      final lista = await Api.get(
+        'ingesta/alimentos/${Uri.encodeComponent(widget.item.codigo)}/unidades',
+      ) as List;
+      if (mounted)
+        setState(
+          () =>
+              _unidades = [for (final u in lista) Unidad.desdeJson(u as Json)],
+        );
     } on ApiError {
       // Sin el listado se puede cambiar igual la cantidad en la unidad actual.
     }
   }
 
-  double? get _valor => double.tryParse(_cantidad.text.trim().replaceAll(',', '.'));
+  double? get _valor =>
+      double.tryParse(_cantidad.text.trim().replaceAll(',', '.'));
 
   double? get _gramos {
     final valor = _valor;
@@ -76,7 +85,9 @@ class _EditarItemState extends State<_EditarItem> {
       final cambiaUnidad = _unidad != widget.item.unidad;
       await Api.put('ingesta/alimentos/${widget.item.id}', {
         'fecha': widget.fecha,
-        'accion': cambiaUnidad ? 'ActualizarCantidadYUnidad' : 'ActualizarCantidad',
+        'accion': cambiaUnidad
+            ? 'ActualizarCantidadYUnidad'
+            : 'ActualizarCantidad',
         'cantidad': cantidad,
         if (cambiaUnidad) 'unidad': _unidad,
       });
@@ -97,7 +108,12 @@ class _EditarItemState extends State<_EditarItem> {
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(EqSpace.lg, EqSpace.sm, EqSpace.lg, EqSpace.md),
+          padding: const EdgeInsets.fromLTRB(
+            EqSpace.lg,
+            EqSpace.sm,
+            EqSpace.lg,
+            EqSpace.md,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -106,7 +122,10 @@ class _EditarItemState extends State<_EditarItem> {
                 child: Container(
                   width: 40,
                   height: 4,
-                  decoration: BoxDecoration(color: EqColors.borderLight, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(
+                    color: EqColors.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
               const SizedBox(height: EqSpace.md),
@@ -121,7 +140,9 @@ class _EditarItemState extends State<_EditarItem> {
                       etiqueta: 'Cantidad',
                       child: TextField(
                         controller: _cantidad,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         onChanged: (_) => setState(() {}),
                       ),
                     ),
@@ -156,7 +177,10 @@ class _EditarItemState extends State<_EditarItem> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: EqSpace.sm),
-                Text(_error!, style: EqText.bodySm.copyWith(color: EqColors.error)),
+                Text(
+                  _error!,
+                  style: EqText.bodySm.copyWith(color: EqColors.error),
+                ),
               ],
               const SizedBox(height: EqSpace.lg),
               FilledButton.icon(

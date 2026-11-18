@@ -138,36 +138,61 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
     }
   }
 
+  void _crear({required bool actividad}) {
+    final plan = _plan;
+    abrirHoja<void>(
+      context,
+      CrearGastoScreen(
+        fecha: plan?.sinGasto ?? true ? null : plan?.fecha,
+        planes: plan?.planes ?? const [],
+        actividad: actividad,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final plan = _plan;
     return Scaffold(
-      appBar: const EqTopBar(),
-      body: ConBotonCrear(
+      extendBodyBehindAppBar: true,
+      appBar: EqTopBar(
+        flotante: true,
         acciones: [
-          AccionMenu(
+          // El "+" pregunta qué agregar y abre la hoja en esa pestaña.
+          BotonMenu(
             icono: Icons.add,
-            etiqueta: 'Crear plan o actividad',
-            onTap: () => abrirHoja<void>(
-              context,
-              CrearGastoScreen(
-                fecha: plan?.sinGasto ?? true ? null : plan?.fecha,
-                planes: plan?.planes ?? const [],
+            tooltip: '¿Qué quieres agregar?',
+            acciones: [
+              AccionMenu(
+                icono: Icons.event_note_outlined,
+                etiqueta: 'Plan predefinido',
+                onTap: () => _crear(actividad: false),
               ),
-            ),
+              AccionMenu(
+                icono: Icons.directions_run,
+                etiqueta: 'Agregar actividad',
+                // Solo hay actividades sobre un plan ya creado.
+                habilitada: plan != null && !plan.sinGasto,
+                onTap: () => _crear(actividad: true),
+              ),
+            ],
           ),
-          AccionMenu(
+          BotonCircular(
             icono: Icons.delete_outline,
-            etiqueta: 'Eliminar gasto calórico',
+            tooltip: 'Eliminar gasto calórico',
+            relleno: false,
             color: EqColors.error,
-            habilitada:
+            onPressed:
                 plan != null &&
-                !plan.sinGasto &&
-                plan.bloqueo == null &&
-                plan.actividades.isNotEmpty,
-            onTap: _eliminarPlan,
+                    !plan.sinGasto &&
+                    plan.bloqueo == null &&
+                    plan.actividades.isNotEmpty
+                ? _eliminarPlan
+                : null,
           ),
         ],
+      ),
+      body: ConBotonCrear(
         child: RefreshIndicator(
           onRefresh: () => _cargar(plan?.fecha),
           child: _contenido(),
@@ -185,9 +210,9 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
     if (plan == null) return const SizedBox.shrink();
     final hoy = _hoy;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         EqSpace.md,
-        EqSpace.lg,
+        EqSpace.lg + espacioBarra(context),
         EqSpace.md,
         EqSpace.xl,
       ),
@@ -243,24 +268,23 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
           ],
           _HeroGasto(plan),
           const SizedBox(height: 12),
-          EqPares(
-            hijos: [
-              EqMetrica(
-                icono: Icons.bolt_outlined,
-                titulo: 'Metabolismo basal',
-                valor: _miles(plan.gastoBasalDiario),
-                unidad: 'kcal por día en reposo',
-                color: EqColors.indigo,
-              ),
-              EqMetrica(
-                icono: Icons.directions_run,
-                titulo: 'Actividades',
-                valor: _miles(plan.gastoActividadesDiario),
-                unidad:
-                    'kcal por día · ${fmtNum(plan.horasActividad, 1)} h '
-                    'a la semana',
-              ),
-            ],
+          EqMetrica(
+            icono: Icons.bolt_outlined,
+            titulo: 'G.Reposo',
+            valor: _miles(plan.gastoBasalDiario),
+            unidad: 'kcals/día pendientes',
+            color: EqColors.indigo,
+            horizontal: true,
+          ),
+          const SizedBox(height: 8),
+          EqMetrica(
+            icono: Icons.directions_run,
+            titulo: 'Actividades',
+            valor: _miles(plan.gastoActividadesDiario),
+            unidad:
+                'kcal por día · ${fmtNum(plan.horasActividad, 1)} h '
+                'a la semana',
+            horizontal: true,
           ),
           const SizedBox(height: EqSpace.lg),
           EqSeccion(

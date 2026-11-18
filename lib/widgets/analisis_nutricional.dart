@@ -22,7 +22,9 @@ Future<void> verAnalisis(
     context,
     HojaInferior(
       titulo: titulo,
-      subtitulo: analisis.estado.isEmpty ? dieta : '$dieta · ${analisis.estado}',
+      subtitulo: analisis.estado.isEmpty
+          ? dieta
+          : '$dieta · ${analisis.estado}',
       child: _Analisis(analisis, objetivos),
     ),
   );
@@ -44,6 +46,14 @@ Color _colorTono(_Tono t) => switch (t) {
   _Tono.medio => EqColors.warningText,
   _Tono.bien => EqColors.primary,
 };
+
+/// Color de un % según los cortes del análisis (< 50 bajo, < 90 medio, resto bien),
+/// para que otras pantallas pinten igual que la tabla de nutrientes.
+Color colorPorcentaje(double pct) => _colorTono(_tono(pct));
+
+/// Igual que el resumen del análisis sobre el verde oscuro: bien en verde claro, si no coral.
+Color colorPorcentajeOscuro(double pct) =>
+    _tono(pct) == _Tono.bien ? EqColors.primarySoft : _coral;
 
 enum _Orden {
   cualitativo('% cualitativo'),
@@ -107,7 +117,8 @@ class _AnalisisState extends State<_Analisis> {
     });
   }
 
-  int _cuantos(GrupoNutriente? g) => widget.analisis.nutrientes.where((n) => g == null || n.grupo == g).length;
+  int _cuantos(GrupoNutriente? g) =>
+      widget.analisis.nutrientes.where((n) => g == null || n.grupo == g).length;
 
   @override
   Widget build(BuildContext context) {
@@ -116,19 +127,35 @@ class _AnalisisState extends State<_Analisis> {
       padding: const EdgeInsets.only(bottom: EqSpace.xl),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.md, EqSpace.md, 0),
+          padding: const EdgeInsets.fromLTRB(
+            EqSpace.md,
+            EqSpace.md,
+            EqSpace.md,
+            0,
+          ),
           child: _Resumen(widget.analisis, widget.objetivos),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(EqSpace.lg, EqSpace.lg, EqSpace.lg, EqSpace.sm),
-          child: Text('Nutriente por nutriente', style: EqText.h4.copyWith(fontWeight: FontWeight.w600)),
+          padding: const EdgeInsets.fromLTRB(
+            EqSpace.lg,
+            EqSpace.lg,
+            EqSpace.lg,
+            EqSpace.sm,
+          ),
+          child: Text(
+            'Nutriente por nutriente',
+            style: EqText.h4.copyWith(fontWeight: FontWeight.w600),
+          ),
         ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: EqSpace.lg),
           child: Row(
             children: [
-              for (final g in <GrupoNutriente?>[null, ...GrupoNutriente.values]) ...[
+              for (final g in <GrupoNutriente?>[
+                null,
+                ...GrupoNutriente.values,
+              ]) ...[
                 EqChip(
                   texto: '${g?.nombre ?? 'Todos'} ${_cuantos(g)}',
                   activo: _grupo == g,
@@ -140,12 +167,27 @@ class _AnalisisState extends State<_Analisis> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.xs, EqSpace.md, 0),
-          child: _BotonOrden(orden: _orden, ascendente: _ascendente, onElegir: _ordenar),
+          padding: const EdgeInsets.fromLTRB(
+            EqSpace.md,
+            EqSpace.xs,
+            EqSpace.md,
+            0,
+          ),
+          child: _BotonOrden(
+            orden: _orden,
+            ascendente: _ascendente,
+            onElegir: _ordenar,
+          ),
         ),
         const _Encabezado(),
         for (final (i, n) in visibles.indexed) ...[
-          if (i > 0) Divider(height: 1, indent: EqSpace.lg, endIndent: EqSpace.lg, color: EqColors.borderFaint),
+          if (i > 0)
+            Divider(
+              height: 1,
+              indent: EqSpace.lg,
+              endIndent: EqSpace.lg,
+              color: EqColors.borderFaint,
+            ),
           _FilaNutriente(
             n,
             abierto: _abiertos.contains(n),
@@ -155,11 +197,19 @@ class _AnalisisState extends State<_Analisis> {
           ),
         ],
         Padding(
-          padding: const EdgeInsets.fromLTRB(EqSpace.lg, EqSpace.lg, EqSpace.lg, 0),
+          padding: const EdgeInsets.fromLTRB(
+            EqSpace.lg,
+            EqSpace.lg,
+            EqSpace.lg,
+            0,
+          ),
           child: Text(
             'La barra muestra el % cuantitativo de 0 a 200 %; la línea del centro es el objetivo diario. '
             'Toca un nutriente para ver su objetivo y la cantidad de la dieta.',
-            style: EqText.caption.copyWith(letterSpacing: 0, color: EqColors.textFaint),
+            style: EqText.caption.copyWith(
+              letterSpacing: 0,
+              color: EqColors.textFaint,
+            ),
           ),
         ),
       ],
@@ -177,7 +227,9 @@ class _Resumen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final duracion = MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 900);
+    final duracion = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 900);
     return EqHero(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       child: TweenAnimationBuilder<double>(
@@ -204,16 +256,25 @@ class _Resumen extends StatelessWidget {
                 ),
               ],
             ),
-            if (o case final o? when o.indiceGlucemico > 0 || o.costo > 0 || o.agua > 0) ...[
+            if (o case final o?
+                when o.indiceGlucemico > 0 || o.costo > 0 || o.agua > 0) ...[
               const SizedBox(height: EqSpace.md),
               const Divider(height: 1, color: Colors.white24),
               const SizedBox(height: 12),
               IntrinsicHeight(
                 child: Row(
                   children: [
-                    _Dato('Índice glucémico', fmtNum(o.indiceGlucemico), 'promedio'),
+                    _Dato(
+                      'Índice glucémico',
+                      fmtNum(o.indiceGlucemico),
+                      'promedio',
+                    ),
                     const VerticalDivider(width: 1, color: Colors.white24),
-                    _Dato('Costo', '\$${o.costo.toStringAsFixed(2)}', 'por día'),
+                    _Dato(
+                      'Costo',
+                      '\$${o.costo.toStringAsFixed(2)}',
+                      'por día',
+                    ),
                     const VerticalDivider(width: 1, color: Colors.white24),
                     _Dato('Agua', '${o.agua.round()} ml', 'en alimentos'),
                   ],
@@ -227,11 +288,38 @@ class _Resumen extends StatelessWidget {
   }
 }
 
+/// Anillo de satisfacción general sobre el fondo oscuro de un resumen (el mismo
+/// del análisis). Con [valor] null muestra "—" mientras llega el dato.
+class AnilloSatisfaccion extends StatelessWidget {
+  const AnilloSatisfaccion(this.valor, {super.key});
+
+  final double? valor;
+
+  @override
+  Widget build(BuildContext context) {
+    final duracion = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 900);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: duracion,
+      curve: Curves.easeOutCubic,
+      builder: (context, t, _) =>
+          _Anillo(valor: valor ?? 0, progreso: t, vacio: valor == null),
+    );
+  }
+}
+
 class _Anillo extends StatelessWidget {
-  const _Anillo({required this.valor, required this.progreso});
+  const _Anillo({
+    required this.valor,
+    required this.progreso,
+    this.vacio = false,
+  });
 
   final double valor;
   final double progreso;
+  final bool vacio;
 
   @override
   Widget build(BuildContext context) {
@@ -243,21 +331,32 @@ class _Anillo extends StatelessWidget {
         child: Column(
           children: [
             CustomPaint(
-              painter: _PintorAnillo(fraccion: valor / 100 * progreso, color: color),
+              painter: _PintorAnillo(
+                fraccion: valor / 100 * progreso,
+                color: color,
+              ),
               child: SizedBox.square(
                 dimension: 96,
                 child: Center(
                   child: Text.rich(
                     TextSpan(
                       children: [
-                        TextSpan(text: '${(valor * progreso).round()}'),
+                        TextSpan(text: vacio ? '—' : '${(valor * progreso).round()}'),
                         TextSpan(
-                          text: '%',
-                          style: EqText.h4.copyWith(color: Colors.white70),
+                          text: vacio ? '' : '%',
+                          style: EqText.caption.copyWith(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            letterSpacing: 0,
+                          ),
                         ),
                       ],
                     ),
-                    style: EqText.h1.copyWith(color: Colors.white, fontSize: 30, height: 1),
+                    style: EqText.h1.copyWith(
+                      color: Colors.white,
+                      fontSize: 24,
+                      height: 1,
+                    ),
                   ),
                 ),
               ),
@@ -266,7 +365,11 @@ class _Anillo extends StatelessWidget {
             Text(
               'Satisfacción general',
               textAlign: TextAlign.center,
-              style: EqText.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w600, letterSpacing: 0),
+              style: EqText.caption.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0,
+              ),
             ),
           ],
         ),
@@ -297,11 +400,18 @@ class _PintorAnillo extends CustomPainter {
       ..strokeWidth = grosor
       ..strokeCap = StrokeCap.round
       ..color = color;
-    canvas.drawArc(area, -math.pi / 2, math.pi * 2 * fraccion.clamp(0, 1), false, arco);
+    canvas.drawArc(
+      area,
+      -math.pi / 2,
+      math.pi * 2 * fraccion.clamp(0, 1),
+      false,
+      arco,
+    );
   }
 
   @override
-  bool shouldRepaint(_PintorAnillo old) => old.fraccion != fraccion || old.color != color;
+  bool shouldRepaint(_PintorAnillo old) =>
+      old.fraccion != fraccion || old.color != color;
 }
 
 class _BarraResumen extends StatelessWidget {
@@ -320,11 +430,20 @@ class _BarraResumen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(nombre, style: EqText.caption.copyWith(color: Colors.white70, letterSpacing: 0)),
+              child: Text(
+                nombre,
+                style: EqText.caption.copyWith(
+                  color: Colors.white70,
+                  letterSpacing: 0,
+                ),
+              ),
             ),
             Text(
               '${fmtNum(valor)} %',
-              style: EqText.label.copyWith(color: color, fontWeight: FontWeight.w700),
+              style: EqText.label.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -355,13 +474,30 @@ class _Dato extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(nombre, style: EqText.caption.copyWith(color: Colors.white70, letterSpacing: 0, fontSize: 11)),
+          Text(
+            nombre,
+            style: EqText.caption.copyWith(
+              color: Colors.white70,
+              letterSpacing: 0,
+              fontSize: 11,
+            ),
+          ),
           const SizedBox(height: 2),
           Text(
             valor,
-            style: EqText.h4.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+            style: EqText.h4.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          Text(nota, style: EqText.caption.copyWith(color: Colors.white60, letterSpacing: 0, fontSize: 11)),
+          Text(
+            nota,
+            style: EqText.caption.copyWith(
+              color: Colors.white60,
+              letterSpacing: 0,
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );
@@ -371,7 +507,11 @@ class _Dato extends StatelessWidget {
 // ── Lista de nutrientes ──────────────────────────────────────────────────
 
 class _BotonOrden extends StatelessWidget {
-  const _BotonOrden({required this.orden, required this.ascendente, required this.onElegir});
+  const _BotonOrden({
+    required this.orden,
+    required this.ascendente,
+    required this.onElegir,
+  });
 
   final _Orden orden;
   final bool ascendente;
@@ -394,7 +534,9 @@ class _BotonOrden extends StatelessWidget {
                     width: 28,
                     child: o == orden
                         ? Icon(
-                            ascendente ? Icons.arrow_upward : Icons.arrow_downward,
+                            ascendente
+                                ? Icons.arrow_upward
+                                : Icons.arrow_downward,
                             size: 18,
                             color: EqColors.primary,
                           )
@@ -406,14 +548,27 @@ class _BotonOrden extends StatelessWidget {
             ),
         ],
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: EqSpace.sm, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: EqSpace.sm,
+            vertical: 10,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.sort, size: 18, color: EqColors.primary),
               const SizedBox(width: 6),
-              Text('Orden: ${orden.etiqueta}', style: EqText.label.copyWith(color: EqColors.primary, fontSize: 13)),
-              Icon(ascendente ? Icons.arrow_upward : Icons.arrow_downward, size: 14, color: EqColors.primary),
+              Text(
+                'Orden: ${orden.etiqueta}',
+                style: EqText.label.copyWith(
+                  color: EqColors.primary,
+                  fontSize: 13,
+                ),
+              ),
+              Icon(
+                ascendente ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 14,
+                color: EqColors.primary,
+              ),
             ],
           ),
         ),
@@ -431,9 +586,18 @@ class _Encabezado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final estilo = EqText.caption.copyWith(color: EqColors.textFaint, letterSpacing: 0, fontSize: 11);
+    final estilo = EqText.caption.copyWith(
+      color: EqColors.textFaint,
+      letterSpacing: 0,
+      fontSize: 11,
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(EqSpace.lg, EqSpace.xs, EqSpace.lg, EqSpace.xs),
+      padding: const EdgeInsets.fromLTRB(
+        EqSpace.lg,
+        EqSpace.xs,
+        EqSpace.lg,
+        EqSpace.xs,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -449,7 +613,11 @@ class _Encabezado extends StatelessWidget {
           ),
           SizedBox(
             width: _anchoValor,
-            child: Text('Cualitativo', textAlign: TextAlign.right, style: estilo),
+            child: Text(
+              'Cualitativo',
+              textAlign: TextAlign.right,
+              style: estilo,
+            ),
           ),
         ],
       ),
@@ -471,7 +639,9 @@ class _FilaNutriente extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: AnimatedSize(
-        duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 220),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         alignment: Alignment.topCenter,
         child: Padding(
@@ -492,22 +662,33 @@ class _FilaNutriente extends StatelessWidget {
                               TextSpan(text: n.nombre),
                               TextSpan(
                                 text: '  ${n.unidad}',
-                                style: EqText.caption.copyWith(letterSpacing: 0, color: EqColors.textFaint),
+                                style: EqText.caption.copyWith(
+                                  letterSpacing: 0,
+                                  color: EqColors.textFaint,
+                                ),
                               ),
                             ],
                           ),
-                          style: EqText.label.copyWith(fontWeight: FontWeight.w600),
+                          style: EqText.label.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
-                              child: _Regla(valor: n.cuantitativo, color: cuantitativo),
+                              child: _Regla(
+                                valor: n.cuantitativo,
+                                color: cuantitativo,
+                              ),
                             ),
                             const SizedBox(width: EqSpace.sm),
                             Text(
                               '${fmtNum(n.cuantitativo)} %',
-                              style: EqText.caption.copyWith(letterSpacing: 0, color: EqColors.textMuted),
+                              style: EqText.caption.copyWith(
+                                letterSpacing: 0,
+                                color: EqColors.textMuted,
+                              ),
                             ),
                           ],
                         ),
@@ -519,7 +700,11 @@ class _FilaNutriente extends StatelessWidget {
                     child: Text(
                       '${fmtNum(n.cualitativo)}%',
                       textAlign: TextAlign.right,
-                      style: EqText.h4.copyWith(color: cualitativo, fontWeight: FontWeight.w700, height: 1),
+                      style: EqText.h4.copyWith(
+                        color: cualitativo,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                      ),
                     ),
                   ),
                 ],
@@ -551,18 +736,28 @@ class _Regla extends StatelessWidget {
           children: [
             Container(
               height: 6,
-              decoration: BoxDecoration(color: EqColors.surfaceHigh, borderRadius: BorderRadius.circular(3)),
+              decoration: BoxDecoration(
+                color: EqColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(3),
+              ),
             ),
             FractionallySizedBox(
               widthFactor: (valor / 200).clamp(0.02, 1).toDouble(),
               child: Container(
                 height: 6,
-                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
             Align(
               alignment: Alignment.center,
-              child: Container(width: 2, height: 12, color: EqColors.onSurfaceVar.withValues(alpha: 0.55)),
+              child: Container(
+                width: 2,
+                height: 12,
+                color: EqColors.onSurfaceVar.withValues(alpha: 0.55),
+              ),
             ),
           ],
         ),
@@ -583,15 +778,24 @@ class _Detalle extends StatelessWidget {
     final datos = [
       ('Objetivo', '${fmtNum(n.objetivo)} $u'),
       ('Cantidad', '${fmtNum(n.cantidad)} $u'),
-      (falta ? 'Falta (+Def)' : 'Sobra (-Exc)', '${falta ? '+' : ''}${fmtNum(n.excDef)}'),
+      (
+        falta ? 'Falta (+Def)' : 'Sobra (-Exc)',
+        '${falta ? '+' : ''}${fmtNum(n.excDef)}',
+      ),
       ('% cuantitativo', '${fmtNum(n.cuantitativo)} %'),
       ('% cualitativo', '${fmtNum(n.cualitativo)} %'),
-      ('% zonas crec.', (n.zona ?? '').isEmpty ? '—' : n.zona!.replaceAll('.', ',')),
+      (
+        '% zonas crec.',
+        (n.zona ?? '').isEmpty ? '—' : n.zona!.replaceAll('.', ','),
+      ),
     ];
     return Container(
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: EqColors.surfaceLow, borderRadius: BorderRadius.circular(EqRadius.md)),
+      decoration: BoxDecoration(
+        color: EqColors.surfaceLow,
+        borderRadius: BorderRadius.circular(EqRadius.md),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -611,7 +815,10 @@ class _Detalle extends StatelessWidget {
                         children: [
                           Text(
                             etiqueta,
-                            style: EqText.caption.copyWith(letterSpacing: 0, fontSize: 11),
+                            style: EqText.caption.copyWith(
+                              letterSpacing: 0,
+                              fontSize: 11,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -619,7 +826,9 @@ class _Detalle extends StatelessWidget {
                             valor,
                             style: EqText.label.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: etiqueta.startsWith('Falta') ? EqColors.warningText : EqColors.onSurface,
+                              color: etiqueta.startsWith('Falta')
+                                  ? EqColors.warningText
+                                  : EqColors.onSurface,
                             ),
                           ),
                         ],
@@ -632,7 +841,10 @@ class _Detalle extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             'SEC ${fmtNum(n.sec)} · ${n.grupo.nombre.toUpperCase()}',
-            style: EqText.caption.copyWith(fontSize: 11, color: EqColors.primary),
+            style: EqText.caption.copyWith(
+              fontSize: 11,
+              color: EqColors.primary,
+            ),
           ),
         ],
       ),

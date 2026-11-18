@@ -18,7 +18,12 @@ Future<T?> abrirHoja<T>(BuildContext context, Widget hoja) {
 
 /// Pie de las hojas de creación: aviso de validación encima del botón principal.
 class PieFormulario extends StatelessWidget {
-  const PieFormulario({super.key, required this.texto, required this.onPressed, this.error});
+  const PieFormulario({
+    super.key,
+    required this.texto,
+    required this.onPressed,
+    this.error,
+  });
 
   final String texto;
 
@@ -40,14 +45,24 @@ class PieFormulario extends StatelessWidget {
           ),
           const SizedBox(height: EqSpace.sm),
         ],
-        FilledButton.icon(onPressed: onPressed, icon: const Icon(Icons.check), label: Text(texto)),
+        FilledButton.icon(
+          onPressed: onPressed,
+          icon: const Icon(Icons.check),
+          label: Text(texto),
+        ),
       ],
     );
   }
 }
 
 class HojaInferior extends StatelessWidget {
-  const HojaInferior({super.key, required this.titulo, required this.child, this.subtitulo, this.pie});
+  const HojaInferior({
+    super.key,
+    required this.titulo,
+    required this.child,
+    this.subtitulo,
+    this.pie,
+  });
 
   final String titulo;
   final String? subtitulo;
@@ -62,7 +77,10 @@ class HojaInferior extends StatelessWidget {
         Container(
           width: 40,
           height: 4,
-          decoration: BoxDecoration(color: EqColors.borderLight, borderRadius: BorderRadius.circular(2)),
+          decoration: BoxDecoration(
+            color: EqColors.borderLight,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(EqSpace.lg, 12, 12, 12),
@@ -74,7 +92,8 @@ class HojaInferior extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(titulo, style: EqText.h3),
-                    if (subtitulo != null) Text(subtitulo!, style: EqText.bodySm),
+                    if (subtitulo != null)
+                      Text(subtitulo!, style: EqText.bodySm),
                   ],
                 ),
               ),
@@ -96,7 +115,10 @@ class HojaInferior extends StatelessWidget {
             ),
             child: SafeArea(
               top: false,
-              child: Padding(padding: const EdgeInsets.all(EqSpace.md), child: pie),
+              child: Padding(
+                padding: const EdgeInsets.all(EqSpace.md),
+                child: pie,
+              ),
             ),
           ),
       ],

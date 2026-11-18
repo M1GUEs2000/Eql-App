@@ -6,7 +6,7 @@ import '../data/sesion.dart';
 import '../theme/eq_tokens.dart';
 import '../widgets/eq_basicos.dart';
 import '../widgets/hoja_politica.dart';
-import 'shell_screen.dart';
+import 'ficha_guiada_screen.dart';
 
 class RegistroScreen extends StatefulWidget {
   const RegistroScreen({super.key});
@@ -111,9 +111,9 @@ class _RegistroScreenState extends State<RegistroScreen> {
         'aceptaPoliticaCookies': _cookies,
       });
       if (!mounted) return;
-      // La API inicia sesión al registrar: se entra directo a la app.
+      // La API inicia sesión al registrar: sigue el asistente de datos del usuario.
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const ShellScreen()),
+        MaterialPageRoute<void>(builder: (_) => const FichaGuiadaScreen()),
         (_) => false,
       );
     } on ApiError catch (e) {
