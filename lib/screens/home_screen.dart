@@ -15,6 +15,7 @@ import '../widgets/eq_top_bar.dart';
 import '../widgets/hoja_inferior.dart';
 import '../widgets/opcion_card.dart';
 import 'crear_dieta_screen.dart';
+import 'crear_gasto_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onIrAPestana});
@@ -25,60 +26,14 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const EqTopBar(),
-      body: ListView(
-        children: [
-          _Bienvenida(onIrAPestana: onIrAPestana),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              EqSpace.md,
-              EqSpace.xl,
-              EqSpace.md,
-              EqSpace.xl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('¿Qué quieres hacer?', style: EqText.h3),
-                const SizedBox(height: EqSpace.md),
-                OpcionCard(
-                  icono: Icons.restaurant_menu,
-                  titulo: 'Ver mis dietas',
-                  descripcion:
-                      'Consulta las dietas que has guardado anteriormente',
-                  onTap: () => onIrAPestana(1),
-                ),
-                const SizedBox(height: 12),
-                OpcionCard(
-                  icono: Icons.edit_calendar_outlined,
-                  titulo: 'Crear nueva dieta',
-                  descripcion:
-                      'Empieza una nueva planificación nutricional desde cero',
-                  onTap: () => crearDieta(context, onIrAPestana),
-                ),
-                const SizedBox(height: 12),
-                OpcionCard(
-                  icono: Icons.local_fire_department_outlined,
-                  titulo: 'Ver mi gasto calórico',
-                  descripcion:
-                      'Revisa tu balance energético y el cálculo de calorías',
-                  onTap: () => onIrAPestana(3),
-                ),
-                const SizedBox(height: 12),
-                OpcionCard(
-                  icono: Icons.search,
-                  titulo: 'Buscar alimentos',
-                  descripcion:
-                      'Explora y añade alimentos o platos a tus dietas',
-                  onTap: () => onIrAPestana(2),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      body: ListView(children: [_Bienvenida(onIrAPestana: onIrAPestana)]),
     );
   }
 }
+
+/// Abre la hoja "Nuevo cálculo de gasto"; al guardar avisa con [Cambios].
+void crearGasto(BuildContext context, List<Opcion> planes) =>
+    abrirHoja<void>(context, CrearGastoScreen(planes: planes));
 
 /// Abre la hoja "Nueva ingesta"; si se crea la dieta lleva a "Mis dietas"
 /// (pestaña 1), que ya la muestra para empezar a poner alimentos.
@@ -130,6 +85,10 @@ class _BienvenidaState extends State<_Bienvenida> {
   AnalisisNutricional? _analisis;
   var _fallo = false;
 
+  /// null mientras carga. Sin plan propio trabaja con el que genera Equilibra.
+  bool? _tieneGasto;
+  var _planes = <Opcion>[];
+
   @override
   void initState() {
     super.initState();
@@ -144,7 +103,25 @@ class _BienvenidaState extends State<_Bienvenida> {
   }
 
   /// Al abrir y tras cada cambio se vuelve a la última dieta editada.
-  Future<void> _cargar() => _abrir(null);
+  Future<void> _cargar() async {
+    _cargarGasto();
+    await _abrir(null);
+  }
+
+  Future<void> _cargarGasto() async {
+    try {
+      final plan = PlanGasto.desdeJson(await Api.get('gasto-calorico') as Json);
+      if (mounted) {
+        setState(() {
+          _tieneGasto = !plan.sinGasto || plan.fechas.isNotEmpty;
+          _planes = plan.planes;
+        });
+      }
+    } on ApiError {
+      // Si no se sabe, se ofrece "Ver" y la pestaña muestra lo que haya.
+      if (mounted) setState(() => _tieneGasto = true);
+    }
+  }
 
   /// Fecha con dieta vecina a la mostrada: [paso] 1 la siguiente, -1 la anterior.
   String? _vecina(int paso) {
@@ -198,8 +175,17 @@ class _BienvenidaState extends State<_Bienvenida> {
     final f = DateTime.now();
     final fecha = '${_dias[f.weekday - 1]} ${f.day} de ${_meses[f.month - 1]}';
     final dieta = _dieta;
+    // Sin dietas no hay nada que ver: solo se ofrece crear. Si el resumen no
+    // cargó se deja "Ver mis dietas" para no dejar al usuario sin acceso.
+    final tieneDietas = _fallo || (dieta?.dietas.isNotEmpty ?? false);
+    final tieneGasto = _tieneGasto;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(EqSpace.md, EqSpace.lg, EqSpace.md, 0),
+      padding: const EdgeInsets.fromLTRB(
+        EqSpace.md,
+        EqSpace.lg,
+        EqSpace.md,
+        EqSpace.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -216,12 +202,8 @@ class _BienvenidaState extends State<_Bienvenida> {
           else if (dieta == null)
             const SizedBox(height: 120, child: Cargando())
           else if (dieta.vacia)
-            OpcionCard(
-              icono: Icons.restaurant_menu,
-              titulo: 'Crea tu primera dieta',
-              descripcion: 'Aquí verás tu última dieta y qué tan bien cubre tus nutrientes',
-              onTap: () => crearDieta(context, widget.onIrAPestana),
-            )
+            // Sin dietas no hay resumen: las opciones de abajo ya ofrecen crear.
+            const SizedBox.shrink()
           else ...[
             // Arrastrar la tarjeta de lado pasa a la fecha anterior o siguiente.
             DeslizarFechas(
@@ -239,6 +221,51 @@ class _BienvenidaState extends State<_Bienvenida> {
             ),
             if (dieta.dietas.length > 1) _Posicion(dieta),
           ],
+          const SizedBox(height: EqSpace.xl),
+          Text('¿Qué quieres hacer?', style: EqText.h3),
+          const SizedBox(height: EqSpace.md),
+          if (tieneDietas) ...[
+            OpcionCard(
+              icono: Icons.restaurant_menu,
+              titulo: 'Ver mis dietas',
+              descripcion: 'Consulta las dietas que has guardado anteriormente',
+              onTap: () => widget.onIrAPestana(1),
+            ),
+            const SizedBox(height: 12),
+          ],
+          OpcionCard(
+            icono: Icons.edit_calendar_outlined,
+            titulo: 'Crear nueva dieta',
+            descripcion:
+                'Empieza una nueva planificación nutricional desde cero',
+            onTap: () => crearDieta(context, widget.onIrAPestana),
+          ),
+          const SizedBox(height: 12),
+          if (tieneGasto == true) ...[
+            OpcionCard(
+              icono: Icons.local_fire_department_outlined,
+              titulo: 'Ver mi gasto calórico',
+              descripcion:
+                  'Revisa tu balance energético y el cálculo de calorías',
+              onTap: () => widget.onIrAPestana(3),
+            ),
+            const SizedBox(height: 12),
+          ] else if (tieneGasto == false) ...[
+            OpcionCard(
+              icono: Icons.local_fire_department_outlined,
+              titulo: 'Crear gasto calórico',
+              descripcion:
+                  'Calcula tus calorías según tus actividades de la semana',
+              onTap: () => crearGasto(context, _planes),
+            ),
+            const SizedBox(height: 12),
+          ],
+          OpcionCard(
+            icono: Icons.search,
+            titulo: 'Buscar alimentos',
+            descripcion: 'Explora y añade alimentos o platos a tus dietas',
+            onTap: () => widget.onIrAPestana(2),
+          ),
         ],
       ),
     );

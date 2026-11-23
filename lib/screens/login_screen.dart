@@ -5,7 +5,7 @@ import '../data/sesion.dart';
 import '../theme/eq_tokens.dart';
 import '../widgets/eq_basicos.dart';
 import 'registro_screen.dart';
-import 'shell_screen.dart';
+import 'ficha_guiada_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,9 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await Sesion.iniciar(usuario, _clave.text);
+      final pantalla = await pantallaConSesion();
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(builder: (_) => const ShellScreen()),
+      // Sin vuelta atrás: ni la app ni el asistente regresan al login.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => pantalla),
+        (_) => false,
       );
     } on ApiError catch (e) {
       if (mounted) setState(() => _error = e.detalle);

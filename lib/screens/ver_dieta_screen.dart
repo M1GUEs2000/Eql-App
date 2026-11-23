@@ -13,6 +13,7 @@ import '../widgets/boton_optimizar.dart';
 import '../widgets/comida_bloque.dart';
 import '../widgets/editar_item.dart';
 import '../widgets/eq_basicos.dart';
+import '../widgets/opcion_card.dart';
 import '../widgets/eq_top_bar.dart';
 import '../widgets/fecha_libre.dart';
 import '../widgets/popup_buscar.dart';
@@ -807,11 +808,16 @@ class _VerDietaScreenState extends State<VerDietaScreen> {
             ),
           ),
         const SizedBox(height: EqSpace.md),
-        if (ingesta.vacia)
+        if (ingesta.vacia && dietas.isEmpty)
+          CrearPrimeraCard(
+            icono: Icons.restaurant_menu,
+            titulo: 'Crea tu primera dieta',
+            descripcion: 'Desde un plan ya creado o desde cero',
+            onTap: () => abrirHoja<void>(context, const CrearDietaScreen()),
+          )
+        else if (ingesta.vacia)
           EqAviso(
-            dietas.isEmpty
-                ? 'Todavía no tienes dietas. Abre el menú para crear tu primera ingesta.'
-                : 'No hay dieta el ${fechaVista(ingesta.fecha)}. Elige otra o abre el menú para crearla.',
+            'No hay dieta el ${fechaVista(ingesta.fecha)}. Elige otra o abre el menú para crearla.',
             icono: Icons.restaurant_menu,
           )
         else ...[

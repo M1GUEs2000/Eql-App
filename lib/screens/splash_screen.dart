@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/sesion.dart';
 import '../theme/eq_tokens.dart';
 import 'bienvenida_screen.dart';
-import 'shell_screen.dart';
+import 'ficha_guiada_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -31,12 +31,12 @@ class _SplashScreenState extends State<SplashScreen>
       Sesion.restaurar(),
       Future<void>.delayed(const Duration(milliseconds: 1500)),
     ).wait;
+    final pantalla = conSesion
+        ? await pantallaConSesion()
+        : const BienvenidaScreen();
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => conSesion ? const ShellScreen() : const BienvenidaScreen(),
-      ),
-    );
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute<void>(builder: (_) => pantalla));
   }
 
   @override

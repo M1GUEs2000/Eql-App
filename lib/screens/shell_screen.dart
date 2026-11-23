@@ -23,8 +23,8 @@ const _pasosTutorial = [
   PasoTutorial(
     1,
     Icons.assignment,
-    'Aquí haces tus dietas',
-    'Crea, revisa y optimiza tus dietas.',
+    'Aquí ingresas tu dieta',
+    'Puedes hacerlo desde un plan ya creado o desde cero.',
   ),
   PasoTutorial(
     2,
@@ -35,8 +35,8 @@ const _pasosTutorial = [
   PasoTutorial(
     3,
     Icons.local_fire_department,
-    'Aquí está tu gasto calórico',
-    'Crea, edita o elimina tus planes de gasto calórico.',
+    'Aquí ingresas tu gasto calórico',
+    'Puedes hacerlo desde un plan ya creado o desde cero.',
   ),
   PasoTutorial(
     4,

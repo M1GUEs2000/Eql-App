@@ -6,6 +6,7 @@ import '../data/models.dart';
 import '../theme/eq_tokens.dart';
 import '../widgets/boton_crear.dart';
 import '../widgets/eq_basicos.dart';
+import '../widgets/opcion_card.dart';
 import '../widgets/eq_metricas.dart';
 import '../widgets/eq_top_bar.dart';
 import '../widgets/hoja_inferior.dart';
@@ -231,7 +232,16 @@ class _GastoCaloricoScreenState extends State<GastoCaloricoScreen> {
         ),
         const SizedBox(height: EqSpace.md),
         if (_cargando) const LinearProgressIndicator(),
-        if (plan.sinGasto)
+        if (plan.sinGasto && plan.fechas.isEmpty)
+          CrearPrimeraCard(
+            icono: Icons.local_fire_department_outlined,
+            titulo: 'Crea tu primer gasto calórico',
+            descripcion:
+                'Actualmente trabajas con uno generado por Equilibra. '
+                'Puedes crearlo desde un plan ya creado o desde cero.',
+            onTap: () => _crear(actividad: false),
+          )
+        else if (plan.sinGasto)
           EqAviso(
             plan.mensaje ??
                 'Aún no tienes un plan de gasto calórico. '

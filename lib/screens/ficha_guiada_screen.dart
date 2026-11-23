@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../data/api.dart';
 import '../data/models.dart';
+import '../data/progreso_ficha.dart';
 import '../theme/eq_tokens.dart';
 import '../widgets/eq_basicos.dart';
 import '../widgets/popup_datos.dart' show nivelesActividad;
@@ -12,9 +13,20 @@ import 'shell_screen.dart';
 /// Asistente posterior al registro: una pregunta por pantalla, con Anterior y
 /// Continuar. No se puede salir hasta terminar. Guarda en la API al cerrar cada
 /// bloque: antropométricos (obligatorios), clínicos y laboratorio (opcionales)
-/// y, al final, aplica un plan de gasto calórico que se puede ajustar.
+/// y, al final y solo si el usuario quiere, un plan de gasto calórico.
+/// Pantalla al entrar con sesión: el asistente si quedó a medias, si no la app.
+Future<Widget> pantallaConSesion() async {
+  final progreso = await ProgresoFicha.leer();
+  return progreso == null
+      ? const ShellScreen()
+      : FichaGuiadaScreen(progreso: progreso);
+}
+
 class FichaGuiadaScreen extends StatefulWidget {
-  const FichaGuiadaScreen({super.key});
+  const FichaGuiadaScreen({super.key, this.progreso});
+
+  /// Avance guardado de una vez anterior ([ProgresoFicha]); null empieza de cero.
+  final Map<String, dynamic>? progreso;
 
   @override
   State<FichaGuiadaScreen> createState() => _FichaGuiadaScreenState();
@@ -208,6 +220,9 @@ class _FichaGuiadaScreenState extends State<FichaGuiadaScreen> {
   /// Plan de gasto aplicado en el paso de planes; lo muestra el resumen.
   PlanGasto? _gasto;
   var _i = 0;
+
+  /// Aviso inicial antes de la primera pregunta; solo se sale con "Empecemos".
+  var _intro = true;
   var _guardando = false;
   String? _error;
 
@@ -216,7 +231,39 @@ class _FichaGuiadaScreenState extends State<FichaGuiadaScreen> {
     super.initState();
     _cargarDeportes();
     _cargarPlanes();
+    _restaurar();
+    _guardarProgreso();
   }
+
+  /// Retoma el asistente donde quedó si la app se cerró a medias.
+  void _restaurar() {
+    final p = widget.progreso;
+    if (p == null) return;
+    _intro = p['intro'] as bool? ?? true;
+    _valores.addAll((p['valores'] as Map? ?? const {}).cast<String, String>());
+    for (final e in (p['textos'] as Map? ?? const {}).entries) {
+      _texto(e.key as String).text = '${e.value}';
+    }
+    _enAlterna.addAll(((p['enAlterna'] as List?) ?? const []).cast<String>());
+    // Las respuestas restauradas ya definen qué pasos existen.
+    _i = ((p['i'] as num?)?.toInt() ?? 0).clamp(0, _pasos.length - 1);
+    final fechaGasto = p['fechaGasto'] as String?;
+    if (fechaGasto != null) {
+      _cargarGasto(fechaGasto).catchError((Object e) {
+        if (mounted && e is ApiError) setState(() => _error = e.detalle);
+      });
+    }
+  }
+
+  /// Se llama en cada cambio de paso; la respuesta en curso no se guarda.
+  void _guardarProgreso() => ProgresoFicha.guardar({
+    'intro': _intro,
+    'i': _i,
+    'valores': _valores,
+    'textos': {for (final e in _textos.entries) e.key: e.value.text},
+    'enAlterna': _enAlterna.toList(),
+    'fechaGasto': _gasto?.fecha,
+  });
 
   Future<void> _cargarPlanes() async {
     setState(() => _errorPlanes = null);
@@ -525,22 +572,35 @@ class _FichaGuiadaScreenState extends State<FichaGuiadaScreen> {
         lab('ndHematocrito', '¿Cuál es tu hematocrito?', 10, 70, '%'),
         lab(_ultimoLaboratorio, '¿Cuál es tu creatinina?', 0.1, 15),
       ],
+      // Opcional: con No termina el asistente y queda el gasto que genera Equilibra.
       const _Paso(
-        _pasoPlan,
+        'llenarGasto',
         _Bloque.gasto,
-        'Selecciona tu gasto calórico',
-        _Tipo.planGasto,
+        '¿Quieres profundizar tu gasto calórico?',
+        _Tipo.siNo,
         ayuda:
-            'Elige el plan de actividades que más se parezca a tu semana. '
-            'En el siguiente paso puedes ajustar cada actividad.',
+            'Es opcional. Si no lo haces, Equilibra genera uno por ti, '
+            'y puedes editarlo en Equilibra cuando quieras.',
       ),
-      const _Paso(
-        'resumenGasto',
-        _Bloque.gasto,
-        'Tu gasto calórico',
-        _Tipo.resumenGasto,
-        ayuda: 'Toca una actividad para editarla, o finaliza si así está bien.',
-      ),
+      if (si('llenarGasto')) ...[
+        const _Paso(
+          _pasoPlan,
+          _Bloque.gasto,
+          'Selecciona tu gasto calórico',
+          _Tipo.planGasto,
+          ayuda:
+              'Elige el plan de actividades que más se parezca a tu semana. '
+              'En el siguiente paso puedes ajustar cada actividad.',
+        ),
+        const _Paso(
+          'resumenGasto',
+          _Bloque.gasto,
+          'Tu gasto calórico',
+          _Tipo.resumenGasto,
+          ayuda:
+              'Toca una actividad para editarla, o finaliza si así está bien.',
+        ),
+      ],
     ];
   }
 
@@ -673,6 +733,8 @@ class _FichaGuiadaScreenState extends State<FichaGuiadaScreen> {
     }
     if (!mounted) return;
     if (_i + 1 >= _pasos.length) {
+      await ProgresoFicha.borrar();
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
           builder: (_) => const ShellScreen(tutorial: true),
@@ -685,6 +747,7 @@ class _FichaGuiadaScreenState extends State<FichaGuiadaScreen> {
       _guardando = false;
       _i++;
     });
+    _guardarProgreso();
   }
 
   void _anterior() {
@@ -693,6 +756,7 @@ class _FichaGuiadaScreenState extends State<FichaGuiadaScreen> {
       _i--;
       _error = null;
     });
+    _guardarProgreso();
   }
 
   void _decidir(String valor) {
@@ -705,8 +769,61 @@ class _FichaGuiadaScreenState extends State<FichaGuiadaScreen> {
     _error = null;
   });
 
+  Widget _introduccion() {
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(EqSpace.lg),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Image.asset(
+                        'assets/images/logo_100.png',
+                        width: 80,
+                        height: 80,
+                      ),
+                    ),
+                    const SizedBox(height: EqSpace.lg),
+                    Text(
+                      'Tu primera evaluación nutricional',
+                      textAlign: TextAlign.center,
+                      style: EqText.h3,
+                    ),
+                    const SizedBox(height: EqSpace.md),
+                    Text(
+                      'Equilibra requiere una primera evaluación nutricional '
+                      'para funcionar. Para ello es obligatorio que ingreses '
+                      'tus datos generales básicos.',
+                      textAlign: TextAlign.center,
+                      style: EqText.body,
+                    ),
+                    const SizedBox(height: EqSpace.xl),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() => _intro = false);
+                        _guardarProgreso();
+                      },
+                      child: const Text('Empecemos'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_intro) return _introduccion();
     final pasos = _pasos;
     final paso = pasos[_i];
     final delBloque = pasos.where((p) => p.bloque == paso.bloque).toList();
@@ -786,7 +903,7 @@ class _FichaGuiadaScreenState extends State<FichaGuiadaScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text(paso.pregunta, style: EqText.h2),
+                            Text(paso.pregunta, style: EqText.h3),
                             if (paso.ayuda != null) ...[
                               const SizedBox(height: EqSpace.sm),
                               Text(paso.ayuda!, style: EqText.bodySm),

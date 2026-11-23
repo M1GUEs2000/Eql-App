@@ -138,7 +138,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Crea tu cuenta', style: EqText.h2),
+                    Text('Crea tu cuenta', style: EqText.h3),
                     const SizedBox(height: EqSpace.xs),
                     Text(
                       'Completa tus datos para empezar a usar Equilibra',
